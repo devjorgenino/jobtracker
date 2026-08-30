@@ -1,188 +1,195 @@
 /**
  * ATS-Compliant PDF Document & Generator Engine
- * Generates high-fidelity, ATS-parseable vector PDFs matching Jorge Niño's executive Product Engineer design.
+ * Replicates the exact linear layout of Jorge Niño's Product Engineer CV.
+ * NO tables — pure single-column, section-by-section flow for maximum ATS compatibility.
  */
 
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { TailoredCV, MasterCV } from '../../types/cv';
 
-// Register standard high-clarity fonts for PDF rendering
-Font.register({
-  family: 'Roboto',
-  fonts: [
-    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf', fontWeight: 300 },
-    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf', fontWeight: 400 },
-    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-medium-webfont.ttf', fontWeight: 500 },
-    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 700 },
-  ],
-});
-
+/* ─────────────────────────── Styles ─────────────────────────── */
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 28,
-    paddingBottom: 28,
-    paddingHorizontal: 32,
+    paddingTop: 30,
+    paddingBottom: 30,
+    paddingHorizontal: 36,
     fontFamily: 'Helvetica',
     fontSize: 9,
     color: '#1f2937',
-    lineHeight: 1.35,
+    lineHeight: 1.4,
   },
+
+  /* ── Header ── */
   header: {
-    borderBottomWidth: 1.2,
-    borderBottomColor: '#2563eb',
-    paddingBottom: 8,
-    marginBottom: 10,
     alignItems: 'center',
     textAlign: 'center',
+    marginBottom: 12,
   },
   name: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   roleTitle: {
-    fontSize: 10.5,
-    fontWeight: 'bold',
-    color: '#1e40af',
-    marginBottom: 4,
-    textAlign: 'center',
+    fontSize: 10,
+    color: '#374151',
+    marginBottom: 6,
   },
-  contactRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    fontSize: 8.2,
+  contactLine: {
+    fontSize: 8.5,
     color: '#4b5563',
+    textAlign: 'center',
     lineHeight: 1.3,
   },
-  contactDivider: {
-    marginHorizontal: 4,
-    color: '#9ca3af',
+  headerDivider: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#2563eb',
+    marginTop: 10,
   },
+
+  /* ── Sections ── */
   section: {
-    marginBottom: 9,
+    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: 'bold',
     color: '#111827',
-    textTransform: 'uppercase',
-    borderBottomWidth: 1,
-    borderBottomColor: '#d1d5db',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+    borderBottomWidth: 0.8,
+    borderBottomColor: '#9ca3af',
     paddingBottom: 2,
-    marginBottom: 5,
-    letterSpacing: 0.4,
+    marginBottom: 6,
   },
+
+  /* ── Summary ── */
   summaryText: {
     fontSize: 8.8,
     color: '#374151',
-    lineHeight: 1.35,
-    textAlign: 'justify',
+    lineHeight: 1.45,
+    textAlign: 'justify' as const,
   },
+
+  /* ── Skills (inline paragraph, NOT table) ── */
+  skillsParagraph: {
+    fontSize: 8.8,
+    color: '#374151',
+    lineHeight: 1.5,
+  },
+  skillCategoryLabel: {
+    fontFamily: 'Helvetica-Bold',
+    color: '#111827',
+  },
+
+  /* ── Experience ── */
   experienceBlock: {
     marginBottom: 7,
   },
-  expHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 1.5,
+  expHeaderRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+    marginBottom: 2,
   },
   expRoleCompany: {
-    fontSize: 9.5,
-    fontWeight: 'bold',
+    fontSize: 9.2,
+    fontFamily: 'Helvetica-Bold',
     color: '#111827',
     flex: 1,
-  },
-  expCompanyAccent: {
-    color: '#1e40af',
-    fontWeight: 'bold',
+    paddingRight: 8,
   },
   expDate: {
     fontSize: 8.5,
+    fontStyle: 'italic' as const,
     color: '#4b5563',
-    fontStyle: 'italic',
-    textAlign: 'right',
-  },
-  expLocation: {
-    fontSize: 8,
-    color: '#6b7280',
-    marginBottom: 2,
+    textAlign: 'right' as const,
+    flexShrink: 0,
   },
   bulletList: {
-    marginTop: 1,
-    paddingLeft: 2,
+    paddingLeft: 4,
+    marginTop: 2,
   },
   bulletRow: {
-    flexDirection: 'row',
+    flexDirection: 'row' as const,
     marginBottom: 2,
-    alignItems: 'flex-start',
+    alignItems: 'flex-start' as const,
   },
   bulletSymbol: {
-    width: 9,
+    width: 8,
     fontSize: 9,
-    color: '#1e40af',
+    color: '#374151',
   },
   bulletText: {
     flex: 1,
     fontSize: 8.6,
     color: '#374151',
-    lineHeight: 1.3,
+    lineHeight: 1.35,
   },
-  techRow: {
-    marginTop: 2,
-    fontSize: 8,
+  expSkillsLine: {
+    fontSize: 8.2,
     color: '#4b5563',
-    fontStyle: 'italic',
+    fontStyle: 'italic' as const,
+    marginTop: 2,
+    paddingLeft: 4,
   },
-  skillCategoryRow: {
-    flexDirection: 'row',
-    marginBottom: 2.5,
-    fontSize: 8.6,
-    lineHeight: 1.3,
-  },
-  skillCategoryName: {
-    fontWeight: 'bold',
-    color: '#111827',
-    width: 145,
-  },
-  skillCategoryValues: {
-    flex: 1,
-    color: '#374151',
+
+  /* ── Education ── */
+  eduBlock: {
+    marginBottom: 4,
   },
   eduRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 2,
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
   },
-  eduDegree: {
-    fontWeight: 'bold',
+  eduMain: {
+    flex: 1,
     fontSize: 9,
     color: '#111827',
+    paddingRight: 8,
   },
-  eduSchool: {
-    fontSize: 8.8,
+  eduInstitution: {
+    fontFamily: 'Helvetica-Bold',
+    color: '#111827',
+  },
+  eduDegree: {
     color: '#374151',
   },
   eduDate: {
     fontSize: 8.5,
+    fontStyle: 'italic' as const,
     color: '#4b5563',
-    fontStyle: 'italic',
+    flexShrink: 0,
+    textAlign: 'right' as const,
   },
   eduDescription: {
     fontSize: 8.2,
     color: '#6b7280',
-    fontStyle: 'italic',
-    marginBottom: 3,
+    fontStyle: 'italic' as const,
+    marginTop: 1,
     paddingLeft: 4,
+  },
+
+  /* ── Certifications ── */
+  certLine: {
+    fontSize: 8.6,
+    color: '#374151',
+    marginBottom: 2,
+  },
+
+  /* ── Languages ── */
+  languagesLine: {
+    fontSize: 8.8,
+    color: '#374151',
   },
 });
 
+/* ─────────────────────── ATS Resume Document ─────────────────────── */
 export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv }) => {
   const p = cv.personalInfo || {
     name: 'Jorge Niño',
@@ -201,7 +208,7 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
   const certifications = cv.certifications || [];
   const languages = cv.languages || [];
 
-  // Build clean contact items without emojis for ATS compliance
+  // Build contact string separated by " | "
   const contactParts: string[] = [];
   if (p.phone) contactParts.push(p.phone);
   if (p.email) contactParts.push(p.email);
@@ -211,23 +218,20 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
   if (p.location) contactParts.push(p.location);
 
   return (
-    <Document title={`CV_${p.name.replace(/\s+/g, '_')}`} author={p.name} subject="Product Engineer ATS Resume">
+    <Document title={`CV_${(p.name || 'Jorge_Nino').replace(/\s+/g, '_')}`} author={p.name} subject="Product Engineer ATS Resume">
       <Page size="A4" style={styles.page}>
-        {/* Header */}
+
+        {/* ═══════════ HEADER ═══════════ */}
         <View style={styles.header}>
           <Text style={styles.name}>{p.name}</Text>
-          <Text style={styles.roleTitle}>{p.roleTitle || 'Product Engineer | Full-Stack Developer'}</Text>
-          <View style={styles.contactRow}>
-            {contactParts.map((item, idx) => (
-              <React.Fragment key={idx}>
-                {idx > 0 && <Text style={styles.contactDivider}>|</Text>}
-                <Text>{item}</Text>
-              </React.Fragment>
-            ))}
-          </View>
+          <Text style={styles.roleTitle}>
+            {p.roleTitle || 'Product Engineer | Full-Stack Developer | AI-Native Development (Cursor, Claude Code)'}
+          </Text>
+          <Text style={styles.contactLine}>{contactParts.join('  |  ')}</Text>
+          <View style={styles.headerDivider} />
         </View>
 
-        {/* Professional Summary */}
+        {/* ═══════════ RESUMEN PROFESIONAL ═══════════ */}
         {summary ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Resumen Profesional</Text>
@@ -235,35 +239,39 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
           </View>
         ) : null}
 
-        {/* Technical Skills */}
+        {/* ═══════════ HABILIDADES TÉCNICAS (inline paragraph, NO table) ═══════════ */}
         {skillCategories.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Habilidades Técnicas</Text>
-            {skillCategories.map((cat, idx) => (
-              <View key={idx} style={styles.skillCategoryRow}>
-                <Text style={styles.skillCategoryName}>{cat.categoryName}:</Text>
-                <Text style={styles.skillCategoryValues}>{cat.skills.join(', ')}</Text>
-              </View>
-            ))}
+            <Text style={styles.skillsParagraph}>
+              {skillCategories.map((cat, idx) => (
+                <React.Fragment key={idx}>
+                  {idx > 0 ? '  ' : ''}
+                  <Text style={styles.skillCategoryLabel}>{cat.categoryName}: </Text>
+                  <Text>{cat.skills.join(', ')}</Text>
+                </React.Fragment>
+              ))}
+            </Text>
           </View>
         ) : null}
 
-        {/* Work Experience */}
+        {/* ═══════════ EXPERIENCIA PROFESIONAL ═══════════ */}
         {workExperience.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Experiencia Profesional</Text>
             {workExperience.map((exp, idx) => (
               <View key={exp.id || idx} style={styles.experienceBlock}>
-                <View style={styles.expHeader}>
+                {/* Role — Company              Date */}
+                <View style={styles.expHeaderRow}>
                   <Text style={styles.expRoleCompany}>
-                    {exp.role} — <Text style={styles.expCompanyAccent}>{exp.company}</Text>
+                    {exp.role} — {exp.company}
                   </Text>
                   <Text style={styles.expDate}>
                     {exp.startDate} — {exp.current ? 'Presente' : exp.endDate}
                   </Text>
                 </View>
 
-                {/* Achievements / STAR Bullets */}
+                {/* Achievement bullets */}
                 <View style={styles.bulletList}>
                   {(exp.achievements || exp.description || []).map((bullet, bIdx) => (
                     <View key={bIdx} style={styles.bulletRow}>
@@ -273,9 +281,9 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
                   ))}
                 </View>
 
-                {/* Technologies / Skills Used */}
+                {/* Skills line (italic, at the end of each job) */}
                 {exp.technologies && exp.technologies.length > 0 ? (
-                  <Text style={styles.techRow}>
+                  <Text style={styles.expSkillsLine}>
                     Habilidades: {exp.technologies.join(' · ')}
                   </Text>
                 ) : null}
@@ -284,86 +292,84 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
           </View>
         ) : null}
 
-        {/* Education & Specialized Training */}
+        {/* ═══════════ EDUCACIÓN ═══════════ */}
         {education.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Educación</Text>
             {education.map((edu, idx) => (
-              <View key={edu.id || idx} style={{ marginBottom: 3 }}>
+              <View key={edu.id || idx} style={styles.eduBlock}>
                 <View style={styles.eduRow}>
-                  <Text>
-                    <Text style={styles.eduDegree}>{edu.institution}</Text> — <Text style={styles.eduSchool}>{edu.degree}</Text>
+                  <Text style={styles.eduMain}>
+                    <Text style={styles.eduInstitution}>{edu.institution}</Text>
+                    {' — '}
+                    <Text style={styles.eduDegree}>{edu.degree}</Text>
                   </Text>
                   <Text style={styles.eduDate}>
-                    {edu.startDate} – {edu.current ? 'Presente' : edu.endDate}
+                    {edu.startDate}{edu.endDate ? ` – ${edu.endDate}` : ''}{edu.current ? ' – Presente' : ''}
                   </Text>
                 </View>
                 {edu.fieldOfStudy ? (
-                  <Text style={styles.eduDescription}>({edu.fieldOfStudy})</Text>
+                  <Text style={styles.eduDescription}>{edu.fieldOfStudy}</Text>
                 ) : null}
               </View>
             ))}
           </View>
         ) : null}
 
-        {/* Featured Projects (if tailored/added) */}
+        {/* ═══════════ PROYECTOS DESTACADOS ═══════════ */}
         {projects.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Proyectos Destacados</Text>
             {projects.map((proj, idx) => (
-              <View key={idx} style={{ marginBottom: 3 }}>
-                <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#111827' }}>
-                  {proj.name} {proj.url ? `(${proj.url})` : ''}
+              <View key={idx} style={{ marginBottom: 4 }}>
+                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#111827' }}>
+                  {proj.name}{proj.url ? ` (${proj.url})` : ''}
                 </Text>
-                <Text style={{ fontSize: 8.6, color: '#374151' }}>{proj.description}</Text>
+                <Text style={{ fontSize: 8.6, color: '#374151', marginTop: 1 }}>{proj.description}</Text>
                 {proj.technologies && proj.technologies.length > 0 ? (
-                  <Text style={styles.techRow}>Tecnologías: {proj.technologies.join(' · ')}</Text>
+                  <Text style={styles.expSkillsLine}>Tecnologías: {proj.technologies.join(' · ')}</Text>
                 ) : null}
               </View>
             ))}
           </View>
         ) : null}
 
-        {/* Certifications (if any) */}
+        {/* ═══════════ CERTIFICACIONES ═══════════ */}
         {certifications.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Certificaciones</Text>
             {certifications.map((cert, idx) => (
-              <View key={idx} style={styles.eduRow}>
-                <Text style={{ fontSize: 8.6, color: '#374151' }}>
-                  • <Text style={{ fontWeight: 'bold' }}>{cert.name}</Text> ({cert.issuer}) {cert.issueDate ? `· ${cert.issueDate}` : ''}
-                </Text>
-              </View>
+              <Text key={idx} style={styles.certLine}>
+                • {cert.name} — {cert.issuer}{cert.issueDate ? ` · ${cert.issueDate}` : ''}
+              </Text>
             ))}
           </View>
         ) : null}
 
-        {/* Languages */}
+        {/* ═══════════ IDIOMAS ═══════════ */}
         {languages.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Idiomas</Text>
-            <Text style={{ fontSize: 8.6, color: '#374151' }}>
-              {languages.map(l => `${l.language} (${l.proficiency})`).join(' · ')}
+            <Text style={styles.languagesLine}>
+              {languages.map(l => `${l.language} (${l.proficiency})`).join('  ·  ')}
             </Text>
           </View>
         ) : null}
+
       </Page>
     </Document>
   );
 };
 
+/* ─────────────────────── Service Class ─────────────────────── */
 export class ATSPDFService {
-  /**
-   * Generates a Blob representing the PDF
-   */
+  /** Generates a Blob representing the PDF */
   static async generatePDFBlob(cv: TailoredCV | MasterCV): Promise<Blob> {
     const doc = <ATSResumeDocument cv={cv} />;
     return await pdf(doc).toBlob();
   }
 
-  /**
-   * Download the PDF directly in the browser
-   */
+  /** Download the PDF directly in the browser */
   static async downloadPDF(cv: TailoredCV | MasterCV, filename?: string): Promise<void> {
     const blob = await this.generatePDFBlob(cv);
     const url = URL.createObjectURL(blob);
