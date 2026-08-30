@@ -1,16 +1,22 @@
 /**
  * JobTracker AI - Popup Controller
- * Manages extraction preview, manual editing, and synchronization with the JobTracker app.
+ * Manages extraction preview, manual editing, floating widget activation,
+ * and synchronization with the JobTracker app.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Elements
+  // DOM Elements
   const loadingState = document.getElementById('loading-state');
   const formState = document.getElementById('form-state');
   const portalBadge = document.getElementById('portal-badge');
+  const quickActionBar = document.getElementById('quick-action-bar');
+  const quickActionText = document.getElementById('quick-action-text');
+  const toggleFloatingBtn = document.getElementById('toggle-floating-btn');
+  const widgetModeSelect = document.getElementById('widget-mode-select');
+
   const titleInput = document.getElementById('job-title');
   const companyInput = document.getElementById('job-company');
-  const workModeInput = document.getElementById('job-workmode');
+  const workModeInput = document.getElementById('job-work-mode');
   const locationInput = document.getElementById('job-location');
   const salaryInput = document.getElementById('job-salary');
   const statusInput = document.getElementById('job-status');
@@ -27,10 +33,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusMsg = document.getElementById('status-msg');
 
   let currentJobData = null;
+  let activeTabId = null;
   let activeTabUrl = '';
+  let isJobSiteDetected = false;
+  let isWidgetCurrentlyVisible = false;
+
+  // Load user preference for widget mode
+  if (chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get(['floatingWidgetMode'], (result) => {
+      if (result.floatingWidgetMode && widgetModeSelect) {
+        widgetModeSelect.value = result.floatingWidgetMode;
+      } else if (widgetModeSelect) {
+        widgetModeSelect.value = 'job_portals_only';
+      }
+    });
+  }
+
+  // Handle widget mode preference change
+  if (widgetModeSelect) {
+    widgetModeSelect.addEventListener('change', (e) => {
+      const selectedMode = e.target.value;
+      if (chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ floatingWidgetMode: selectedMode }, () => {
+          showStatus('⚙️ Preferencia guardada: ' + getModeLabel(selectedMode), 'success');
+        });
+      }
+      if (activeTabId) {
+        chrome.tabs.sendMessage(activeTabId, { action: 'SET_WIDGET_MODE', mode: selectedMode }, () => {
+          if (chrome.runtime.lastError) {}
+        });
+      }
+    });
+  }
+
+  function getModeLabel(mode) {
+    switch (mode) {
+      case 'job_portals_only': return 'Solo en portales de empleo';
+      case 'manual': return 'Solo manual';
+      case 'always': return 'En todas las páginas';
+      default: return mode;
+    }
+  }
 
   function parseTitleAndPortal(tabTitle, tabUrl) {
-    let portal = 'Web Genérico';
+    let portal = 'Web Externa';
     const url = tabUrl || '';
     if (url.includes('linkedin.com')) portal = 'LinkedIn';
     else if (url.includes('indeed.')) portal = 'Indeed';
@@ -40,6 +86,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     else if (url.includes('glassdoor.')) portal = 'Glassdoor';
     else if (url.includes('torre.co') || url.includes('torre.ai')) portal = 'Torre';
     else if (url.includes('weworkremotely.com')) portal = 'We Work Remotely';
+    else if (url.includes('greenhouse.io')) portal = 'Greenhouse';
+    else if (url.includes('lever.co')) portal = 'Lever';
+    else if (url.includes('workable.com')) portal = 'Workable';
+    else if (url.includes('myworkdayjobs.com')) portal = 'Workday';
+    else if (url.includes('wellfound.com')) portal = 'Wellfound';
 
     let clean = (tabTitle || '').replace(/^\(\d+\+?\)\s*/, '').trim();
     clean = clean.replace(/\s*([|–—-•])\s*(?:LinkedIn|Indeed|InfoJobs|CompuTrabajo|Get on Board|Glassdoor|Torre|We Work Remotely).*$/i, '').trim();
@@ -110,6 +161,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  async function checkPageStatus(tabId) {
+    return new Promise((resolve) => {
+      chrome.tabs.sendMessage(tabId, { action: 'CHECK_PAGE_STATUS' }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+          resolve(null);
+        } else {
+          resolve(res);
+        }
+      });
+    });
+  }
+
   // 1. Query active tab and request job data
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -117,11 +180,46 @@ document.addEventListener('DOMContentLoaded', async () => {
       throw new Error('No se pudo acceder a la pestaña activa.');
     }
 
+    activeTabId = tab.id;
     activeTabUrl = tab.url || '';
-    const response = await requestJobData(tab.id);
+
+    // Fetch page status and job data
+    const [pageStatus, response] = await Promise.all([
+      checkPageStatus(tab.id),
+      requestJobData(tab.id)
+    ]);
 
     loadingState.style.display = 'none';
     formState.style.display = 'flex';
+
+    isJobSiteDetected = !!(pageStatus?.isJobSite || response?.isJobSite);
+    isWidgetCurrentlyVisible = !!(pageStatus?.isWidgetVisible);
+
+    // Update portal badge with distinction between detected job portals and manual web extraction
+    if (isJobSiteDetected) {
+      const portalName = pageStatus?.portalName || response?.scraperName || response?.job?.portal || 'Portal Empleo';
+      portalBadge.textContent = '🟢 ' + portalName;
+      portalBadge.className = 'badge badge-portal detected';
+      portalBadge.title = 'Portal de empleo detectado automáticamente';
+
+      if (quickActionBar) {
+        quickActionBar.style.display = 'flex';
+        quickActionText.textContent = isWidgetCurrentlyVisible ? 'Widget flotante activo' : 'Portal de empleo detectado';
+        toggleFloatingBtn.textContent = isWidgetCurrentlyVisible ? 'Ocultar Widget' : 'Mostrar Widget';
+        toggleFloatingBtn.className = isWidgetCurrentlyVisible ? 'btn-sm-action active' : 'btn-sm-action';
+      }
+    } else {
+      portalBadge.textContent = '⚪ Web Externa (Manual)';
+      portalBadge.className = 'badge badge-portal manual';
+      portalBadge.title = 'El widget no se muestra automáticamente en sitios externos';
+
+      if (quickActionBar) {
+        quickActionBar.style.display = 'flex';
+        quickActionText.textContent = '¿Viendo una vacante aquí?';
+        toggleFloatingBtn.textContent = '⚡ Mostrar Widget';
+        toggleFloatingBtn.className = 'btn-sm-action';
+      }
+    }
 
     if (!response || !response.success || !response.job) {
       // Fallback parsed from title and url
@@ -140,23 +238,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         status: 'wishlist',
         priority: 'medium'
       };
-      portalBadge.textContent = parsed.portal;
     } else {
       currentJobData = response.job;
-      portalBadge.textContent = response.scraper || currentJobData.portal || 'Detectado';
     }
 
     populateForm(currentJobData);
   } catch (err) {
     loadingState.style.display = 'none';
     formState.style.display = 'flex';
-    portalBadge.textContent = 'Modo Manual';
+    portalBadge.textContent = '⚪ Modo Manual';
+    portalBadge.className = 'badge badge-portal manual';
     populateForm({
       position: '',
       company: '',
       location: 'Remoto',
       workMode: 'Remoto',
       url: activeTabUrl
+    });
+  }
+
+  // Handle Quick Toggle Floating Widget Button
+  if (toggleFloatingBtn) {
+    toggleFloatingBtn.addEventListener('click', () => {
+      if (!activeTabId) return;
+
+      const action = isWidgetCurrentlyVisible ? 'HIDE_FLOATING_WIDGET' : 'SHOW_FLOATING_WIDGET';
+      chrome.tabs.sendMessage(activeTabId, { action }, (res) => {
+        if (chrome.runtime.lastError) {
+          showStatus('⚠️ No se pudo comunicar con la pestaña activa.', 'error');
+          return;
+        }
+
+        isWidgetCurrentlyVisible = !isWidgetCurrentlyVisible;
+        if (isWidgetCurrentlyVisible) {
+          toggleFloatingBtn.textContent = 'Ocultar Widget';
+          toggleFloatingBtn.className = 'btn-sm-action active';
+          quickActionText.textContent = 'Widget flotante activo';
+          showStatus('⚡ Widget flotante activado en la página.', 'success');
+        } else {
+          toggleFloatingBtn.textContent = 'Mostrar Widget';
+          toggleFloatingBtn.className = 'btn-sm-action';
+          quickActionText.textContent = 'Widget flotante ocultado';
+          showStatus('Widget flotante ocultado.', 'info');
+        }
+      });
     });
   }
 
@@ -191,7 +316,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       contactProfile: currentJobData?.contactProfile || '',
       description: descInput.value.trim(),
       url: currentJobData?.url || activeTabUrl,
-      portal: currentJobData?.portal || portalBadge.textContent,
+      portal: currentJobData?.portal || (isJobSiteDetected ? 'Portal Empleo' : 'Web Externa'),
       createdAt: currentJobData?.createdAt || new Date().toISOString(),
       lastUpdate: new Date().toISOString(),
       notes: currentJobData?.notes || 'Capturado vía Extensión JobTracker AI'
@@ -267,9 +392,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function showStatus(text, type) {
     statusMsg.textContent = text;
-    statusMsg.className = `status-msg show ${type}`;
+    statusMsg.style.display = 'block';
+    statusMsg.className = `status-banner show ${type}`;
     setTimeout(() => {
-      statusMsg.className = 'status-msg';
+      statusMsg.className = 'status-banner';
+      statusMsg.style.display = 'none';
     }, 4000);
   }
 });

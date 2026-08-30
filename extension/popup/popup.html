@@ -28,6 +28,17 @@
       </div>
     </header>
 
+    <!-- Quick Action / Manual Activation Banner -->
+    <div id="quick-action-bar" class="quick-action-bar">
+      <div class="quick-action-info">
+        <span class="quick-action-icon">⚡</span>
+        <span id="quick-action-text" class="quick-action-text">Widget flotante en página</span>
+      </div>
+      <button type="button" id="toggle-floating-btn" class="btn-sm-action">
+        Mostrar Widget
+      </button>
+    </div>
+
     <!-- Main Content -->
     <div id="loading-state" class="state-container">
       <div class="spinner"></div>
@@ -132,6 +143,22 @@
         </button>
       </div>
 
+      <!-- Widget Settings Selector -->
+      <div class="widget-config-card">
+        <div class="widget-config-header">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <label for="widget-mode-select" class="config-label">Aparición del Widget Flotante:</label>
+        </div>
+        <select id="widget-mode-select" class="config-select">
+          <option value="job_portals_only">🎯 Solo en portales de empleo (Recomendado)</option>
+          <option value="manual">✋ Solo manual (bajo demanda)</option>
+          <option value="always">🌐 En todas las páginas</option>
+        </select>
+      </div>
+
       <div class="footer-links">
         <button type="button" id="copy-json-btn" class="link-btn">📋 Copiar JSON</button>
         <span class="sep">•</span>
@@ -140,7 +167,7 @@
     </div>
 
     <!-- Success / Error Status Banner -->
-    <div id="status-message" class="status-banner" style="display: none;"></div>
+    <div id="status-msg" class="status-banner" style="display: none;"></div>
   </div>
 
   <script src="popup.js"></script>

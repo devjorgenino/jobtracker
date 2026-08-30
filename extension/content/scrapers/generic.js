@@ -4,11 +4,85 @@
  */
 
 window.JobTrackerGenericScraper = {
-  name: 'Generic',
+  name: 'Genérico (Smart JSON-LD / ATS)',
   
   detect: function() {
-    // Generic is the fallback for any page
-    return true;
+    // 1. Check for structured JSON-LD JobPosting schema
+    try {
+      const jsonLdJob = this.extractJsonLd();
+      if (jsonLdJob && (jsonLdJob.title || jsonLdJob.company)) {
+        return true;
+      }
+    } catch (e) {
+      // Ignore JSON parse errors
+    }
+
+    // 2. Check for Microdata JobPosting
+    try {
+      const microdataJob = document.querySelector('[itemtype*="schema.org/JobPosting"], [itemtype*="schema.org/jobposting"]');
+      if (microdataJob) {
+        return true;
+      }
+    } catch (e) {
+      // Ignore selector errors
+    }
+
+    // 3. Check for recognized job board / ATS domains
+    const hostname = window.location.hostname.toLowerCase();
+    const knownJobDomains = [
+      'greenhouse.io',
+      'lever.co',
+      'workable.com',
+      'myworkdayjobs.com',
+      'smartrecruiters.com',
+      'ashbyhq.com',
+      'wellfound.com',
+      'angel.co',
+      'breezy.hr',
+      'jobvite.com',
+      'recruitee.com',
+      'join.com',
+      'talent.com',
+      'monster.',
+      'ziprecruiter.',
+      'simplyhired.',
+      'welcometothejungle.com',
+      'otta.com',
+      'hiring.cafe',
+      'cord.co',
+      'arc.dev',
+      'remotive.com',
+      'dailyremote.com',
+      'flexjobs.com',
+      'workingnomads.com',
+      'adzuna.',
+      'jooble.',
+      'bumeran.',
+      'occ.com.mx',
+      'elempleo.com',
+      'trabajosdiarios.com',
+      'empleos.',
+      'tecoloco.'
+    ];
+    if (knownJobDomains.some(domain => hostname.includes(domain))) {
+      return true;
+    }
+
+    // 4. Check for job URL patterns combined with job posting content signals
+    const path = window.location.pathname.toLowerCase();
+    const isJobUrlPattern = /\/(jobs|careers|vacantes|ofertas|positions|opportunities|trabajo|empleo|oportunidades|job|career)\//.test(path) ||
+                            /\/(job|vacante|oferta|position)-/.test(path);
+    
+    if (isJobUrlPattern) {
+      const pageText = document.body ? document.body.innerText.substring(0, 3000).toLowerCase() : '';
+      const hasJobKeywords = /(requisitos|requirements|responsabilidades|responsibilities|apply now|postularme|postularse|solicitar empleo|salary|salario|remoto|remote|full-time|tiempo completo)/i.test(pageText);
+      const hasHeading = !!document.querySelector('h1, h2.job-title, [class*="job-title"], [class*="jobTitle"], [class*="position-title"]');
+      if (hasJobKeywords && hasHeading) {
+        return true;
+      }
+    }
+
+    return false;
   },
 
   extractTechStack: function(text) {
