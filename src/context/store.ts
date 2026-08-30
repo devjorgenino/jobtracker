@@ -50,6 +50,12 @@ export interface AppState {
   resetAIConfig: () => void;
 
   // UI / Filters Actions
+  theme: 'dark' | 'light';
+  toggleTheme: () => void;
+  setTheme: (theme: 'dark' | 'light') => void;
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   setActiveJobId: (id: string | null) => void;
   setFilters: (filters: Partial<AppState['filters']>) => void;
 
@@ -231,6 +237,13 @@ export const useStore = create<AppState>()(
         workMode: 'all',
         portal: 'all',
       },
+      theme: 'dark',
+      toggleTheme: () =>
+        set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      setTheme: (theme: 'dark' | 'light') => set({ theme }),
+      sidebarCollapsed: false,
+      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setSidebarCollapsed: (collapsed: boolean) => set({ sidebarCollapsed: collapsed }),
 
       addJob: (job: Job) => {
         set((state) => {
@@ -445,13 +458,29 @@ export const useStore = create<AppState>()(
       name: 'jobtracker-storage-v2',
       merge: (persistedState: any, currentState: AppState) => {
         const persisted = (persistedState as Partial<AppState>) || {};
+        const persistedAi = persisted.aiConfig || ({} as Partial<AIConfig>);
+
+        // Resolve baseUrl: if persisted is empty or points to legacy unreachable domain, use .env default
+        const omnirouteBaseUrl =
+          !persistedAi.omnirouteBaseUrl || persistedAi.omnirouteBaseUrl.includes('api.omniroute.ai')
+            ? DEFAULT_AI_CONFIG.omnirouteBaseUrl
+            : persistedAi.omnirouteBaseUrl;
+
+        // Resolve model: if persisted is generic/invalid, use .env default
+        const omnirouteModel =
+          !persistedAi.omnirouteModel || persistedAi.omnirouteModel.trim() === 'free-models'
+            ? DEFAULT_AI_CONFIG.omnirouteModel
+            : persistedAi.omnirouteModel.trim();
+
         const mergedAiConfig: AIConfig = {
           ...DEFAULT_AI_CONFIG,
-          ...(persisted.aiConfig || {}),
-          omnirouteApiKey: persisted.aiConfig?.omnirouteApiKey || DEFAULT_AI_CONFIG.omnirouteApiKey,
-          openrouterApiKey: persisted.aiConfig?.openrouterApiKey || DEFAULT_AI_CONFIG.openrouterApiKey,
-          huggingfaceApiKey: persisted.aiConfig?.huggingfaceApiKey || DEFAULT_AI_CONFIG.huggingfaceApiKey,
-          customApiKey: persisted.aiConfig?.customApiKey || DEFAULT_AI_CONFIG.customApiKey,
+          ...persistedAi,
+          omnirouteBaseUrl,
+          omnirouteModel,
+          omnirouteApiKey: persistedAi.omnirouteApiKey || DEFAULT_AI_CONFIG.omnirouteApiKey,
+          openrouterApiKey: persistedAi.openrouterApiKey || DEFAULT_AI_CONFIG.openrouterApiKey,
+          huggingfaceApiKey: persistedAi.huggingfaceApiKey || DEFAULT_AI_CONFIG.huggingfaceApiKey,
+          customApiKey: persistedAi.customApiKey || DEFAULT_AI_CONFIG.customApiKey,
         };
 
         return {

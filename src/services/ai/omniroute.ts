@@ -1,32 +1,35 @@
 /**
  * OmniRoute AI Provider Client
- * Supports OpenAI-compatible endpoints, free cloud models, and local model inference.
+ * Supports OpenAI-compatible endpoints, OpenRouter free/paid models, Groq, and local inference (Ollama / LM Studio).
  */
 
 import axios from 'axios';
-import type { ChatMessage, LLMResponse } from '../../types/ai';
-
-export interface OmniRouteOptions {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-  temperature?: number;
-  maxTokens?: number;
-}
+import type { AIConfig, ChatMessage, LLMResponse } from '../../types/ai';
 
 export class OmniRouteProvider {
-  static readonly DEFAULT_BASE_URL = 'https://api.omniroute.ai/v1';
-  static readonly DEFAULT_MODEL = 'qwen/qwen-2.5-72b-instruct:free';
+  private static readonly DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1';
+  private static readonly DEFAULT_MODEL = 'qwen/qwen-2.5-72b-instruct:free';
 
   /**
-   * Completes a chat conversation via OmniRoute API
+   * Resolve an effective base URL with fallback to OpenRouter cloud if legacy/unreachable host is given
+   */
+  private static resolveBaseUrl(rawBaseUrl?: string): string {
+    if (!rawBaseUrl || rawBaseUrl.trim() === '' || rawBaseUrl.includes('api.omniroute.ai')) {
+      return this.DEFAULT_BASE_URL;
+    }
+    return rawBaseUrl.replace(/\/+$/, '');
+  }
+
+  /**
+   * Main completion method
    */
   static async complete(
     messages: ChatMessage[],
-    options: OmniRouteOptions
+    options: Partial<AIConfig> = {},
+    generationParams: { temperature?: number; maxTokens?: number } = {}
   ): Promise<LLMResponse> {
-    const baseUrl = (options.baseUrl || this.DEFAULT_BASE_URL).replace(/\/+$/, '');
-    const model = options.model || this.DEFAULT_MODEL;
+    const baseUrl = this.resolveBaseUrl(options.omnirouteBaseUrl);
+    const model = (options.omnirouteModel || this.DEFAULT_MODEL).trim();
     const url = `${baseUrl}/chat/completions`;
 
     const headers: Record<string, string> = {
@@ -34,71 +37,65 @@ export class OmniRouteProvider {
       'X-Client': 'JobTracker-AI-Suite',
     };
 
-    if (options.apiKey) {
-      headers['Authorization'] = `Bearer ${options.apiKey}`;
+    if (options.omnirouteApiKey) {
+      headers['Authorization'] = `Bearer ${options.omnirouteApiKey.trim()}`;
+    }
+
+    // Include headers required / recommended by OpenRouter
+    if (baseUrl.includes('openrouter.ai')) {
+      headers['HTTP-Referer'] = typeof window !== 'undefined' ? window.location?.origin || 'https://jobtracker.dev' : 'https://jobtracker.dev';
+      headers['X-Title'] = 'JobTracker AI Suite';
     }
 
     const payload = {
       model,
-      messages,
-      temperature: options.temperature ?? 0.3,
-      max_tokens: options.maxTokens ?? 3500,
+      messages: messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      temperature: generationParams.temperature ?? options.temperature ?? 0.3,
+      max_tokens: generationParams.maxTokens ?? options.maxTokens ?? 3000,
     };
 
     try {
       const response = await axios.post(url, payload, {
         headers,
-        timeout: 90000, // 90 seconds timeout for larger generation
+        timeout: 45000,
       });
 
       const choice = response.data?.choices?.[0];
       const content = choice?.message?.content || choice?.text || '';
 
+      if (!content && !response.data?.error) {
+        throw new Error('La respuesta del modelo llegó vacía.');
+      }
+
       return {
-        content,
-        modelUsed: model,
+        content: content.trim(),
+        modelUsed: response.data?.model || model,
         providerUsed: 'omniroute',
         promptTokens: response.data?.usage?.prompt_tokens,
         completionTokens: response.data?.usage?.completion_tokens,
         totalTokens: response.data?.usage?.total_tokens,
       };
     } catch (error: any) {
-      const errMsg =
-        error.response?.data?.error?.message ||
-        error.response?.data?.message ||
-        error.message ||
-        'Error de conexión con OmniRoute';
+      const status = error.response?.status;
+      const apiMsg = error.response?.data?.error?.message || error.response?.data?.message;
 
-      throw new Error(`[OmniRoute Error]: ${errMsg}`);
-    }
-  }
+      if (status === 401) {
+        throw new Error(`[OmniRoute/OpenRouter 401] API Key inválida o no autorizada. Revisa tu clave en Ajustes o en el archivo .env.`);
+      }
+      if (status === 402 || status === 429) {
+        throw new Error(`[OmniRoute/OpenRouter ${status}] Límite de cuota o peticiones alcanzado en ${model}. Si usas un modelo gratuito, espera unos segundos o cambia a otro modelo free.`);
+      }
+      if (status === 404) {
+        throw new Error(`[OmniRoute 404] Endpoint no encontrado en ${url}. Asegúrate de que la URL base incluya /v1 al final.`);
+      }
+      if (!error.response && error.message) {
+        throw new Error(`[Error de Conexión] No se pudo contactar a ${baseUrl}: ${error.message}. Si es un servidor local, asegúrate de que esté encendido. Si es nube, usa https://openrouter.ai/api/v1.`);
+      }
 
-  /**
-   * Healthcheck & Ping
-   */
-  static async testConnection(options: OmniRouteOptions): Promise<{
-    success: boolean;
-    latencyMs: number;
-    message: string;
-  }> {
-    const start = Date.now();
-    try {
-      const res = await this.complete(
-        [{ role: 'user', content: 'Ping' }],
-        { ...options, maxTokens: 5 }
-      );
-      const latencyMs = Date.now() - start;
-      return {
-        success: true,
-        latencyMs,
-        message: `OmniRoute conectado exitosamente con modelo ${res.modelUsed}`,
-      };
-    } catch (e: any) {
-      return {
-        success: false,
-        latencyMs: Date.now() - start,
-        message: e.message || 'Fallo de conexión con OmniRoute',
-      };
+      throw new Error(`[OmniRoute Error] ${apiMsg || error.message || 'Fallo desconocido al conectar con el modelo'}`);
     }
   }
 }

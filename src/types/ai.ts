@@ -76,11 +76,11 @@ const getEnv = (key: string, fallback = ''): string => {
 
 export const DEFAULT_AI_CONFIG: AIConfig = {
   provider: (getEnv('VITE_AI_PROVIDER', 'omniroute') as AIProvider),
-  omnirouteApiKey: getEnv('VITE_OMNIROUTE_API_KEY', getEnv('VITE_API_KEY', '')),
-  omnirouteBaseUrl: getEnv('VITE_OMNIROUTE_BASE_URL', 'https://api.omniroute.ai/v1'),
-  omnirouteModel: getEnv('VITE_OMNIROUTE_MODEL', 'qwen/qwen-2.5-72b-instruct:free'),
-  openrouterApiKey: getEnv('VITE_OPENROUTER_API_KEY', getEnv('VITE_API_KEY', '')),
-  openrouterModel: getEnv('VITE_OPENROUTER_MODEL', 'meta-llama/llama-3.3-70b-instruct:free'),
+  omnirouteApiKey: getEnv('VITE_OMNIROUTE_API_KEY', getEnv('VITE_API_KEY', getEnv('VITE_OPENROUTER_API_KEY', ''))),
+  omnirouteBaseUrl: getEnv('VITE_OMNIROUTE_BASE_URL', 'https://openrouter.ai/api/v1'),
+  omnirouteModel: getEnv('VITE_OMNIROUTE_MODEL', 'qwen/qwen-2.5-72b-instruct:free').trim(),
+  openrouterApiKey: getEnv('VITE_OPENROUTER_API_KEY', getEnv('VITE_API_KEY', getEnv('VITE_OMNIROUTE_API_KEY', ''))),
+  openrouterModel: getEnv('VITE_OPENROUTER_MODEL', 'qwen/qwen-2.5-72b-instruct:free'),
   localOllamaUrl: getEnv('VITE_LOCAL_OLLAMA_URL', getEnv('VITE_LOCAL_URL', 'http://localhost:11434/v1')),
   localOllamaModel: getEnv('VITE_LOCAL_OLLAMA_MODEL', 'qwen2.5:7b'),
   huggingfaceApiKey: getEnv('VITE_HUGGINGFACE_API_KEY', ''),
@@ -93,16 +93,19 @@ export const DEFAULT_AI_CONFIG: AIConfig = {
 };
 
 export const OMNIROUTE_MODELS: AIModelOption[] = [
-  { id: 'qwen/qwen-2.5-72b-instruct:free', name: 'Qwen 2.5 72B Instruct (Free)', provider: 'omniroute', isFree: true, recommendedFor: 'CV Adaptation & ATS Keywords' },
-  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B Instruct (Free)', provider: 'omniroute', isFree: true, recommendedFor: 'Outreach & Strategy' },
-  { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3 (High Speed & Precision)', provider: 'omniroute', isFree: false, recommendedFor: 'Full Automation' },
-  { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1 (Advanced Reasoning)', provider: 'omniroute', isFree: false, recommendedFor: 'Complex Problem Solving' },
-  { id: 'qwen2.5:7b', name: 'Qwen 2.5 7B (Local Inference)', provider: 'omniroute', isFree: true, recommendedFor: '100% Offline PC Inference' },
-  { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B Instruct (Free)', provider: 'omniroute', isFree: true, recommendedFor: 'Fast Generation' },
+  { id: 'qwen/qwen-2.5-72b-instruct:free', name: 'Qwen 2.5 72B Instruct (Free)', provider: 'omniroute', isFree: true, recommendedFor: 'Adaptación de CV, Traducción & Keywords ATS' },
+  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B Instruct (Free)', provider: 'omniroute', isFree: true, recommendedFor: 'Estrategia, Matching & Outreach' },
+  { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Free)', provider: 'omniroute', isFree: true, recommendedFor: 'Generación Ultra Rápida' },
+  { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 (Free)', provider: 'omniroute', isFree: true, recommendedFor: 'Razonamiento Profundo' },
+  { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3 (High Speed)', provider: 'omniroute', isFree: false, recommendedFor: 'Automatización Completa' },
+  { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B Instruct (Free)', provider: 'omniroute', isFree: true, recommendedFor: 'Respuestas Rápidas' },
+  { id: 'qwen2.5:7b', name: 'Qwen 2.5 7B (Local Inference)', provider: 'omniroute', isFree: true, recommendedFor: 'Inferencia 100% Offline (Ollama)' },
 ];
 
 export const OPENROUTER_MODELS: AIModelOption[] = [
-  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B (Free)', provider: 'openrouter', isFree: true },
   { id: 'qwen/qwen-2.5-72b-instruct:free', name: 'Qwen 2.5 72B (Free)', provider: 'openrouter', isFree: true },
+  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B (Free)', provider: 'openrouter', isFree: true },
   { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Free)', provider: 'openrouter', isFree: true },
+  { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 (Free)', provider: 'openrouter', isFree: true },
+  { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3', provider: 'openrouter', isFree: false },
 ];

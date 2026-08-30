@@ -171,7 +171,6 @@ export const CVPage: React.FC = () => {
     toast.info(`Generando PDF ATS optimizado (${lang.toUpperCase()})...`);
     try {
       let cvToRender = cvForm;
-      // If downloading in English, perform full high-quality translation
       if (lang === 'en') {
         toast.info('Traduciendo contenido completo al inglés...');
         cvToRender = await CVTranslationService.translateCV(cvForm, 'en', aiConfig);
@@ -186,8 +185,6 @@ export const CVPage: React.FC = () => {
       setIsGeneratingPdf(false);
     }
   };
-
-  // --- Helpers to update specific sections ---
 
   const updatePersonalInfo = (field: string, value: string) => {
     setCvForm((prev) => ({
@@ -293,16 +290,16 @@ export const CVPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-950/40 via-indigo-950/40 to-slate-900 p-6 rounded-3xl border border-blue-500/20 shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-slate-900 p-6 rounded-3xl border border-blue-200/80 dark:border-blue-500/20 shadow-sm dark:shadow-xl transition-colors">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-slate-100 flex items-center gap-2.5">
-              <FileText className="w-6 h-6 text-blue-400" />
+            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               Gestión de CV Maestro
             </h2>
             <Badge variant="primary">Fuente de Verdad del Sistema</Badge>
           </div>
-          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
             Sube tu currículum en formato <strong>PDF, Word (DOCX) o Texto</strong>. El sistema extraerá toda tu trayectoria, proyectos y habilidades para generar CVs adaptados con IA para cada vacante y redactar estrategias de contacto personalizadas.
           </p>
         </div>
@@ -310,29 +307,29 @@ export const CVPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={handleSaveCV}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-950/50 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
           >
             <Save className="w-4 h-4" />
             Guardar Cambios
           </button>
 
-          <div className="flex items-center bg-slate-850 p-0.5 rounded-xl border border-slate-700/80 shadow-sm">
+          <div className="flex items-center bg-white dark:bg-slate-800 p-0.5 rounded-xl border border-slate-300 dark:border-slate-700/80 shadow-sm">
             <button
               onClick={() => handleDownloadPDF('es')}
               disabled={isGeneratingPdf}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition-all cursor-pointer border-r border-slate-700"
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-lg transition-all cursor-pointer border-r border-slate-300 dark:border-slate-700"
               title="Descargar PDF ATS en Español"
             >
-              {isGeneratingPdf ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" /> : <Download className="w-3.5 h-3.5 text-blue-400" />}
+              {isGeneratingPdf ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-500" /> : <Download className="w-3.5 h-3.5 text-blue-500" />}
               PDF (ES)
             </button>
             <button
               onClick={() => handleDownloadPDF('en')}
               disabled={isGeneratingPdf}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-lg transition-all cursor-pointer"
               title="Download ATS PDF in English"
             >
-              {isGeneratingPdf ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" /> : <Download className="w-3.5 h-3.5 text-emerald-400" />}
+              {isGeneratingPdf ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500" /> : <Download className="w-3.5 h-3.5 text-emerald-500" />}
               PDF (EN)
             </button>
           </div>
@@ -350,76 +347,76 @@ export const CVPage: React.FC = () => {
 
       {/* CV Status Summary Ribbon */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-black">
+        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black">
             <User className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Candidato Activo</div>
-            <div className="text-sm font-black text-slate-200 truncate">
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Candidato Activo</div>
+            <div className="text-sm font-black text-slate-900 dark:text-slate-200 truncate">
               {cvForm.personalInfo?.name || 'Sin Nombre'}
             </div>
-            <div className="text-[11px] text-slate-400 truncate">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
               {cvForm.personalInfo?.roleTitle || 'Sin Título'}
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-black">
+        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black">
             <Briefcase className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Experiencias</div>
-            <div className="text-sm font-black text-slate-200">
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Experiencias</div>
+            <div className="text-sm font-black text-slate-900 dark:text-slate-200">
               {cvForm.workExperience?.length || 0} Puestos registrados
             </div>
-            <div className="text-[11px] text-emerald-400">
+            <div className="text-[11px] text-emerald-600 dark:text-emerald-400">
               {cvForm.workExperience?.some((e) => e.current) ? '• Actualmente empleado' : '• Disponible'}
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 font-black">
+        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 font-black">
             <Wrench className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Habilidades Totales</div>
-            <div className="text-sm font-black text-slate-200">
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Habilidades Totales</div>
+            <div className="text-sm font-black text-slate-900 dark:text-slate-200">
               {cvForm.skillCategories?.reduce((acc, cat) => acc + (cat.skills?.length || 0), 0) || 0} Habilidades
             </div>
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">
               {cvForm.skillCategories?.length || 0} Categorías
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
           <div>
-            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Score ATS Base</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Score ATS Base</div>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl font-black text-blue-400">{atsAnalysis.overallScore}%</span>
+              <span className="text-xl font-black text-blue-600 dark:text-blue-400">{atsAnalysis.overallScore}%</span>
               <Badge variant={atsAnalysis.overallScore >= 80 ? 'success' : 'warning'}>
                 Grado {atsAnalysis.grade}
               </Badge>
             </div>
-            <div className="text-[10px] text-slate-500">Calidad estructural base</div>
+            <div className="text-[10px] text-slate-400">Calidad estructural base</div>
           </div>
-          <div className="w-10 h-10 rounded-full border-2 border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-400">
+          <div className="w-10 h-10 rounded-full border-2 border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-600 dark:text-blue-400">
             ATS
           </div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800 scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-200 dark:border-slate-800 scrollbar-none">
         <button
           onClick={() => setActiveTab('upload')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'upload'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
           }`}
         >
           <Upload className="w-4 h-4" />
@@ -430,8 +427,8 @@ export const CVPage: React.FC = () => {
           onClick={() => setActiveTab('personal')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'personal'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
           }`}
         >
           <User className="w-4 h-4" />
@@ -442,8 +439,8 @@ export const CVPage: React.FC = () => {
           onClick={() => setActiveTab('experience')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'experience'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
           }`}
         >
           <Briefcase className="w-4 h-4" />
@@ -454,8 +451,8 @@ export const CVPage: React.FC = () => {
           onClick={() => setActiveTab('skills')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'skills'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
           }`}
         >
           <Wrench className="w-4 h-4" />
@@ -466,8 +463,8 @@ export const CVPage: React.FC = () => {
           onClick={() => setActiveTab('education')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'education'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
           }`}
         >
           <GraduationCap className="w-4 h-4" />
@@ -478,8 +475,8 @@ export const CVPage: React.FC = () => {
           onClick={() => setActiveTab('projects')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'projects'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
           }`}
         >
           <FolderGit2 className="w-4 h-4" />
@@ -490,8 +487,8 @@ export const CVPage: React.FC = () => {
           onClick={() => setActiveTab('certifications')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'certifications'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
           }`}
         >
           <Award className="w-4 h-4" />
@@ -502,8 +499,8 @@ export const CVPage: React.FC = () => {
           onClick={() => setActiveTab('raw')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'raw'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
           }`}
         >
           <FileCode className="w-4 h-4" />
@@ -527,10 +524,10 @@ export const CVPage: React.FC = () => {
                 handleFileUpload(e.dataTransfer.files[0]);
               }
             }}
-            className={`border-2 border-dashed rounded-3xl p-10 text-center transition-all bg-slate-900/40 ${
+            className={`border-2 border-dashed rounded-3xl p-10 text-center transition-all bg-white dark:bg-slate-900/40 ${
               dragOver
-                ? 'border-blue-400 bg-blue-500/10 scale-[1.01]'
-                : 'border-slate-700 hover:border-slate-600'
+                ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10 scale-[1.01]'
+                : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
             }`}
           >
             <input
@@ -545,14 +542,14 @@ export const CVPage: React.FC = () => {
               }}
             />
 
-            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-4">
               <Upload className="w-8 h-8" />
             </div>
 
-            <h3 className="text-lg font-black text-slate-100">
+            <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
               Arrastra y suelta tu CV aquí, o haz clic para seleccionarlo
             </h3>
-            <p className="text-xs text-slate-400 mt-2 max-w-md mx-auto">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">
               Soporta archivos <strong>PDF (.pdf)</strong>, <strong>Word (.docx)</strong>, <strong>Texto Plano (.txt, .md)</strong> o <strong>JSON (.json)</strong>.
             </p>
 
@@ -561,7 +558,7 @@ export const CVPage: React.FC = () => {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isExtracting}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-xl shadow-xl shadow-blue-950/60 transition-all cursor-pointer"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-xl shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
               >
                 {isExtracting ? 'Extrayendo texto del archivo...' : 'Seleccionar Archivo de mi Equipo'}
               </button>
@@ -571,7 +568,7 @@ export const CVPage: React.FC = () => {
                   type="button"
                   onClick={handleAiStructure}
                   disabled={isAiParsing}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black rounded-xl shadow-xl transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black rounded-xl shadow-lg transition-all cursor-pointer"
                 >
                   {isAiParsing ? (
                     <RefreshCw className="w-4 h-4 animate-spin text-purple-200" />
@@ -584,8 +581,8 @@ export const CVPage: React.FC = () => {
             </div>
 
             {uploadedFileName && (
-              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
-                <FileText className="w-3.5 h-3.5 text-blue-400" />
+              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
+                <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 Archivo cargado: <strong>{uploadedFileName}</strong>
               </div>
             )}
@@ -593,32 +590,32 @@ export const CVPage: React.FC = () => {
 
           {/* Quick instructions & Features */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
                 1
               </div>
-              <h4 className="text-sm font-bold text-slate-200">Extracción Local Rápida</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Extracción Local Rápida</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 El texto de tu CV se procesa directamente en tu navegador. Tus datos personales no salen de tu equipo a servidores externos no autorizados.
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-sm">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-sm">
                 2
               </div>
-              <h4 className="text-sm font-bold text-slate-200">Estructuración STAR/XYZ</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Estructuración STAR/XYZ</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 La IA normaliza tus viñetas de logros en la fórmula de Google (Logré [X], medido por [Y], haciendo [Z]) para maximizar el impacto en reclutadores.
               </p>
             </div>
 
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-sm">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
                 3
               </div>
-              <h4 className="text-sm font-bold text-slate-200">Integración en Toda la Suite</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Integración en Toda la Suite</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Este CV Maestro alimenta el módulo de <strong>Optimización ATS (/optimize)</strong> y el generador de <strong>Estrategia & Mensajes (/strategy)</strong>.
               </p>
             </div>
@@ -628,107 +625,107 @@ export const CVPage: React.FC = () => {
 
       {/* TAB 2: PERSONAL INFO */}
       {activeTab === 'personal' && (
-        <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-6">
+        <div className="bg-white dark:bg-slate-900/60 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <User className="w-5 h-5 text-blue-400" />
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               Información de Contacto & Perfil
             </h3>
-            <span className="text-xs text-slate-500">Encabezado ATS obligatorio</span>
+            <span className="text-xs text-slate-400">Encabezado ATS obligatorio</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Nombre Completo</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">Nombre Completo</label>
               <input
                 type="text"
                 value={cvForm.personalInfo?.name || ''}
                 onChange={(e) => updatePersonalInfo('name', e.target.value)}
                 placeholder="Ej. Jorge Niño"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Título Profesional Principal</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">Título Profesional Principal</label>
               <input
                 type="text"
                 value={cvForm.personalInfo?.roleTitle || ''}
                 onChange={(e) => updatePersonalInfo('roleTitle', e.target.value)}
                 placeholder="Ej. Senior Full Stack Developer | React & Node.js"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Correo Electrónico</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">Correo Electrónico</label>
               <input
                 type="email"
                 value={cvForm.personalInfo?.email || ''}
                 onChange={(e) => updatePersonalInfo('email', e.target.value)}
                 placeholder="correo@ejemplo.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Teléfono / WhatsApp</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">Teléfono / WhatsApp</label>
               <input
                 type="text"
                 value={cvForm.personalInfo?.phone || ''}
                 onChange={(e) => updatePersonalInfo('phone', e.target.value)}
                 placeholder="+58 412 1234567"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Ubicación / Disponibilidad</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">Ubicación / Disponibilidad</label>
               <input
                 type="text"
                 value={cvForm.personalInfo?.location || ''}
                 onChange={(e) => updatePersonalInfo('location', e.target.value)}
                 placeholder="Caracas, Venezuela (Disponible Remoto)"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Perfil de LinkedIn (URL o username)</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">Perfil de LinkedIn (URL o username)</label>
               <input
                 type="text"
                 value={cvForm.personalInfo?.linkedin || ''}
                 onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
                 placeholder="https://linkedin.com/in/jorge-nino"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Perfil de GitHub</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">Perfil de GitHub</label>
               <input
                 type="text"
                 value={cvForm.personalInfo?.github || ''}
                 onChange={(e) => updatePersonalInfo('github', e.target.value)}
                 placeholder="https://github.com/jorge"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">Portafolio / Sitio Web</label>
+              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">Portafolio / Sitio Web</label>
               <input
                 type="text"
                 value={cvForm.personalInfo?.portfolio || ''}
                 onChange={(e) => updatePersonalInfo('portfolio', e.target.value)}
                 placeholder="https://jorgenino.dev"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5">
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">
               Resumen Profesional (Executive Summary)
             </label>
             <textarea
@@ -736,7 +733,7 @@ export const CVPage: React.FC = () => {
               value={cvForm.personalInfo?.summary || ''}
               onChange={(e) => updatePersonalInfo('summary', e.target.value)}
               placeholder="Desarrollador de software con más de 5 años de experiencia diseñando y escalando aplicaciones web..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-blue-500 leading-relaxed"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500 leading-relaxed"
             />
           </div>
         </div>
@@ -747,17 +744,17 @@ export const CVPage: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-blue-400" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 Historial de Experiencia Laboral
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Puestos, empresas, logros cuantificados y tecnologías dominadas.
               </p>
             </div>
             <button
               onClick={addExperience}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Agregar Puesto
@@ -767,13 +764,13 @@ export const CVPage: React.FC = () => {
           {(cvForm.workExperience || []).map((exp, idx) => (
             <div
               key={exp.id || idx}
-              className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4"
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-blue-400">Puesto #{idx + 1}</span>
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Puesto #{idx + 1}</span>
                 <button
                   onClick={() => removeExperience(exp.id)}
-                  className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 flex items-center gap-1 cursor-pointer font-semibold"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Eliminar
@@ -782,55 +779,55 @@ export const CVPage: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Empresa</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Empresa</label>
                   <input
                     type="text"
                     value={exp.company}
                     onChange={(e) => updateExperience(exp.id, { company: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Cargo / Rol</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Cargo / Rol</label>
                   <input
                     type="text"
                     value={exp.role}
                     onChange={(e) => updateExperience(exp.id, { role: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Ubicación</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Ubicación</label>
                   <input
                     type="text"
                     value={exp.location || ''}
                     onChange={(e) => updateExperience(exp.id, { location: e.target.value })}
                     placeholder="Remoto / Ciudad"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Fecha Inicio</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Fecha Inicio</label>
                   <input
                     type="text"
                     value={exp.startDate}
                     onChange={(e) => updateExperience(exp.id, { startDate: e.target.value })}
                     placeholder="Ej. Ene 2022"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Fecha Fin</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Fecha Fin</label>
                   <input
                     type="text"
                     value={exp.endDate}
                     onChange={(e) => updateExperience(exp.id, { endDate: e.target.value })}
                     placeholder="Ej. Presente"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -840,9 +837,9 @@ export const CVPage: React.FC = () => {
                     id={`current_${exp.id}`}
                     checked={Boolean(exp.current)}
                     onChange={(e) => updateExperience(exp.id, { current: e.target.checked })}
-                    className="rounded border-slate-700 text-blue-600 focus:ring-blue-500 bg-slate-950 cursor-pointer"
+                    className="rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 bg-white dark:bg-slate-950 cursor-pointer"
                   />
-                  <label htmlFor={`current_${exp.id}`} className="text-xs text-slate-300 cursor-pointer">
+                  <label htmlFor={`current_${exp.id}`} className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
                     Trabajo Actual
                   </label>
                 </div>
@@ -850,7 +847,7 @@ export const CVPage: React.FC = () => {
 
               {/* Achievements / Bullets */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                   Logros & Responsabilidades (Una viñeta por línea - Recomendado STAR/XYZ)
                 </label>
                 <textarea
@@ -862,13 +859,13 @@ export const CVPage: React.FC = () => {
                     })
                   }
                   placeholder="• Lideré la migración a arquitectura de microservicios reduciendo la latencia en un 40%..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 leading-relaxed font-mono"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500 leading-relaxed font-mono"
                 />
               </div>
 
               {/* Tech Stack */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                   Tecnologías Utilizadas (Separadas por comas)
                 </label>
                 <input
@@ -880,7 +877,7 @@ export const CVPage: React.FC = () => {
                     })
                   }
                   placeholder="React, TypeScript, Node.js, PostgreSQL, Docker"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -893,17 +890,17 @@ export const CVPage: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-blue-400" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 Categorías de Habilidades & Tecnologías
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Organizadas en grupos reconocibles por motores ATS.
               </p>
             </div>
             <button
               onClick={addSkillCategory}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Nueva Categoría
@@ -914,7 +911,7 @@ export const CVPage: React.FC = () => {
             {(cvForm.skillCategories || []).map((cat, idx) => (
               <div
                 key={idx}
-                className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3"
+                className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm"
               >
                 <div className="flex items-center justify-between gap-2">
                   <input
@@ -923,11 +920,11 @@ export const CVPage: React.FC = () => {
                     onChange={(e) =>
                       updateSkillCategory(idx, { ...cat, categoryName: e.target.value })
                     }
-                    className="font-bold text-xs text-blue-400 bg-transparent border-b border-slate-700 pb-1 focus:outline-none focus:border-blue-500 w-full"
+                    className="font-bold text-xs text-blue-600 dark:text-blue-400 bg-transparent border-b border-slate-200 dark:border-slate-700 pb-1 focus:outline-none focus:border-blue-500 w-full"
                   />
                   <button
                     onClick={() => removeSkillCategory(idx)}
-                    className="text-xs text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                    className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 p-1 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -946,7 +943,7 @@ export const CVPage: React.FC = () => {
                         skills: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
                       })
                     }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 leading-relaxed"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500 leading-relaxed"
                   />
                 </div>
 
@@ -954,7 +951,7 @@ export const CVPage: React.FC = () => {
                   {(cat.skills || []).map((skill, sIdx) => (
                     <span
                       key={sIdx}
-                      className="px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px] font-mono"
+                      className="px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-300 text-[11px] font-mono"
                     >
                       {skill}
                     </span>
@@ -971,14 +968,14 @@ export const CVPage: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-blue-400" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 Educación y Títulos
               </h3>
             </div>
             <button
               onClick={addEducation}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Agregar Educación
@@ -988,13 +985,13 @@ export const CVPage: React.FC = () => {
           {(cvForm.education || []).map((edu, idx) => (
             <div
               key={edu.id || idx}
-              className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3"
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-blue-400">Educación #{idx + 1}</span>
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Educación #{idx + 1}</span>
                 <button
                   onClick={() => removeEducation(edu.id)}
-                  className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 flex items-center gap-1 cursor-pointer font-semibold"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Eliminar
@@ -1003,44 +1000,44 @@ export const CVPage: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Institución / Universidad</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Institución / Universidad</label>
                   <input
                     type="text"
                     value={edu.institution}
                     onChange={(e) => updateEducation(edu.id, { institution: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Título / Grado Obtenido</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Título / Grado Obtenido</label>
                   <input
                     type="text"
                     value={edu.degree}
                     onChange={(e) => updateEducation(edu.id, { degree: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Año Inicio</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Año Inicio</label>
                   <input
                     type="text"
                     value={edu.startDate}
                     onChange={(e) => updateEducation(edu.id, { startDate: e.target.value })}
                     placeholder="2018"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Año Fin</label>
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Año Fin</label>
                   <input
                     type="text"
                     value={edu.endDate}
                     onChange={(e) => updateEducation(edu.id, { endDate: e.target.value })}
                     placeholder="2022"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -1053,8 +1050,8 @@ export const CVPage: React.FC = () => {
       {activeTab === 'projects' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <FolderGit2 className="w-5 h-5 text-blue-400" />
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <FolderGit2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               Proyectos Destacados
             </h3>
             <button
@@ -1070,7 +1067,7 @@ export const CVPage: React.FC = () => {
                   projects: [...(prev.projects || []), newProj],
                 }));
               }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Agregar Proyecto
@@ -1080,7 +1077,7 @@ export const CVPage: React.FC = () => {
           {(cvForm.projects || []).map((proj, idx) => (
             <div
               key={proj.id || idx}
-              className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3"
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <input
@@ -1091,7 +1088,7 @@ export const CVPage: React.FC = () => {
                     newProjects[idx] = { ...proj, name: e.target.value };
                     setCvForm({ ...cvForm, projects: newProjects });
                   }}
-                  className="font-bold text-xs text-slate-200 bg-transparent border-b border-slate-700 pb-1 focus:outline-none focus:border-blue-500 w-1/2"
+                  className="font-bold text-xs text-slate-900 dark:text-slate-200 bg-transparent border-b border-slate-300 dark:border-slate-700 pb-1 focus:outline-none focus:border-blue-500 w-1/2"
                 />
                 <button
                   onClick={() => {
@@ -1100,7 +1097,7 @@ export const CVPage: React.FC = () => {
                       projects: (cvForm.projects || []).filter((_, i) => i !== idx),
                     });
                   }}
-                  className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 flex items-center gap-1 cursor-pointer font-semibold"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Eliminar
@@ -1108,7 +1105,7 @@ export const CVPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">Descripción</label>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Descripción</label>
                 <textarea
                   rows={2}
                   value={proj.description}
@@ -1117,12 +1114,12 @@ export const CVPage: React.FC = () => {
                     newProjects[idx] = { ...proj, description: e.target.value };
                     setCvForm({ ...cvForm, projects: newProjects });
                   }}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">Tecnologías (separadas por comas)</label>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Tecnologías (separadas por comas)</label>
                 <input
                   type="text"
                   value={(proj.technologies || []).join(', ')}
@@ -1134,7 +1131,7 @@ export const CVPage: React.FC = () => {
                     };
                     setCvForm({ ...cvForm, projects: newProjects });
                   }}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -1145,15 +1142,15 @@ export const CVPage: React.FC = () => {
       {/* TAB 7: CERTIFICATIONS & LANGUAGES */}
       {activeTab === 'certifications' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <Award className="w-5 h-5 text-amber-400" />
+          <div className="bg-white dark:bg-slate-900/60 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Award className="w-5 h-5 text-amber-500 dark:text-amber-400" />
               Certificaciones
             </h3>
             {(cvForm.certifications || []).map((cert, idx) => (
-              <div key={idx} className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs space-y-1">
-                <div className="font-bold text-slate-200">{cert.name}</div>
-                <div className="text-slate-400">{cert.issuer} {cert.issueDate ? `(${cert.issueDate})` : ''}</div>
+              <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                <div className="font-bold text-slate-800 dark:text-slate-200">{cert.name}</div>
+                <div className="text-slate-500 dark:text-slate-400">{cert.issuer} {cert.issueDate ? `(${cert.issueDate})` : ''}</div>
               </div>
             ))}
             <button
@@ -1169,21 +1166,21 @@ export const CVPage: React.FC = () => {
                   certifications: [...(cvForm.certifications || []), newCert],
                 });
               }}
-              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
             >
               + Agregar Certificación
             </button>
           </div>
 
-          <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <Globe className="w-5 h-5 text-cyan-400" />
+          <div className="bg-white dark:bg-slate-900/60 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
               Idiomas
             </h3>
             {(cvForm.languages || []).map((lang, idx) => (
-              <div key={idx} className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
-                <span className="font-bold text-slate-200">{lang.language}</span>
-                <span className="text-cyan-400 font-mono">{lang.proficiency}</span>
+              <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs flex justify-between items-center">
+                <span className="font-bold text-slate-800 dark:text-slate-200">{lang.language}</span>
+                <span className="text-cyan-600 dark:text-cyan-400 font-mono font-semibold">{lang.proficiency}</span>
               </div>
             ))}
             <button
@@ -1198,7 +1195,7 @@ export const CVPage: React.FC = () => {
                   languages: [...(cvForm.languages || []), newLang],
                 });
               }}
-              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
             >
               + Agregar Idioma
             </button>
@@ -1208,13 +1205,13 @@ export const CVPage: React.FC = () => {
 
       {/* TAB 8: RAW EXTRACTED TEXT */}
       {activeTab === 'raw' && (
-        <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-4">
+        <div className="bg-white dark:bg-slate-900/60 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <FileCode className="w-5 h-5 text-purple-400" />
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <FileCode className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               Texto Crudo Extraído del Documento
             </h3>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {cvForm.rawText?.length || 0} caracteres
             </span>
           </div>
@@ -1224,7 +1221,7 @@ export const CVPage: React.FC = () => {
             value={cvForm.rawText || ''}
             onChange={(e) => setCvForm({ ...cvForm, rawText: e.target.value })}
             placeholder="Pega aquí el texto completo de tu currículum..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 focus:outline-none focus:border-blue-500 leading-relaxed"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-800 dark:text-slate-300 focus:outline-none focus:border-blue-500 leading-relaxed"
           />
 
           <div className="flex justify-end gap-3">
