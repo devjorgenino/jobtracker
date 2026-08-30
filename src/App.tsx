@@ -7,11 +7,14 @@ import { CVPage } from './pages/CVPage';
 import { ExtensionPage } from './pages/ExtensionPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Toaster } from 'sonner';
+import { useStore } from './context/store';
 
 export function App() {
+  const theme = useStore((state) => state.theme);
+
   return (
     <BrowserRouter>
-      <Toaster position="top-right" richColors theme="dark" closeButton />
+      <Toaster position="top-right" richColors theme={theme} closeButton />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<KanbanPage />} />

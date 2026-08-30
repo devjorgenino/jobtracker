@@ -14,7 +14,20 @@ export const Layout: React.FC = () => {
   const [isAddJobOpen, setIsAddJobOpen] = useState(false);
   const addJob = useStore((state) => state.addJob);
   const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
+  const theme = useStore((state) => state.theme);
   const navigate = useNavigate();
+
+  // Sync dark class on documentElement for Tailwind & standard CSS
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    }
+  }, [theme]);
 
   // Form state for Manual Job Add
   const [formData, setFormData] = useState({
@@ -110,7 +123,7 @@ export const Layout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-600 selection:text-white transition-colors duration-200">
       {/* Sidebar Navigation */}
       <Sidebar />
 
@@ -123,7 +136,7 @@ export const Layout: React.FC = () => {
       >
         <Navbar onOpenAddJobModal={() => setIsAddJobOpen(true)} />
 
-        <main className="flex-1 p-6 md:p-8 overflow-x-hidden">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
@@ -139,8 +152,8 @@ export const Layout: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Briefcase className="w-3.5 h-3.5 text-blue-400" />
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5 text-blue-500" />
                 Puesto / Cargo *
               </label>
               <input
@@ -149,13 +162,13 @@ export const Layout: React.FC = () => {
                 placeholder="Ej: Senior React Developer"
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-indigo-500" />
                 Empresa *
               </label>
               <input
@@ -164,18 +177,18 @@ export const Layout: React.FC = () => {
                 placeholder="Ej: Acme Corp"
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Modalidad</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Modalidad</label>
               <select
                 value={formData.workMode}
                 onChange={(e) => setFormData({ ...formData, workMode: e.target.value as WorkMode })}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               >
                 <option value="Remoto">Remoto</option>
                 <option value="Híbrido">Híbrido</option>
@@ -184,8 +197,8 @@ export const Layout: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-emerald-500" />
                 Ubicación
               </label>
               <input
@@ -193,13 +206,13 @@ export const Layout: React.FC = () => {
                 placeholder="Ej: LATAM / Global / Remoto"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5 text-amber-500" />
                 Salario (Opcional)
               </label>
               <input
@@ -207,15 +220,15 @@ export const Layout: React.FC = () => {
                 placeholder="Ej: $4,000 - $6,000 USD/mes"
                 value={formData.salary}
                 onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-sky-400" />
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-sky-500" />
                 URL de la Oferta
               </label>
               <input
@@ -223,13 +236,13 @@ export const Layout: React.FC = () => {
                 placeholder="https://..."
                 value={formData.url}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-purple-400" />
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-purple-500" />
                 Tecnologías (separadas por coma)
               </label>
               <input
@@ -237,13 +250,13 @@ export const Layout: React.FC = () => {
                 placeholder="React, TypeScript, Node.js, AWS..."
                 value={formData.techStackText}
                 onChange={(e) => setFormData({ ...formData, techStackText: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Descripción Completa de la Vacante & Requisitos
             </label>
             <textarea
@@ -251,21 +264,21 @@ export const Layout: React.FC = () => {
               placeholder="Pega aquí la descripción completa de la vacante para que el motor de IA pueda optimizar el CV y generar la estrategia..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setIsAddJobOpen(false)}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium cursor-pointer transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/20 cursor-pointer active:scale-[0.98] transition-all"
             >
               <Plus className="w-4 h-4" />
               Guardar Vacante

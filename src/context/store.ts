@@ -50,6 +50,9 @@ export interface AppState {
   resetAIConfig: () => void;
 
   // UI / Filters Actions
+  theme: 'dark' | 'light';
+  toggleTheme: () => void;
+  setTheme: (theme: 'dark' | 'light') => void;
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
@@ -234,6 +237,10 @@ export const useStore = create<AppState>()(
         workMode: 'all',
         portal: 'all',
       },
+      theme: 'dark',
+      toggleTheme: () =>
+        set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      setTheme: (theme: 'dark' | 'light') => set({ theme }),
       sidebarCollapsed: false,
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed: boolean) => set({ sidebarCollapsed: collapsed }),

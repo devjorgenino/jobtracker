@@ -60,20 +60,6 @@
 * Extrae puesto, empresa, salario, ubicación, requisitos y descripción completa desde **LinkedIn**, **Indeed**, **InfoJobs**, **Computrabajo**, **Wellfound**, **Y Combinator** y portales web genéricos.
 * Sincronización bidireccional instantánea con la aplicación web.
 
----
-
-## 🤖 Configuración de IA y Modelos
-
-JobTracker AI cuenta con una arquitectura de IA agnóstica compatible con cualquier endpoint OpenAI-Compatible. Puedes utilizar modelos gratuitos en la nube o modelos 100% locales y privados:
-
-| Proveedor | Endpoint Base | Modelos Destacados | Tipo |
-| :--- | :--- | :--- | :--- |
-| **OpenRouter (Recomendado)** | `https://openrouter.ai/api/v1` | `qwen/qwen-2.5-72b-instruct:free`<br>`meta-llama/llama-3.3-70b-instruct:free`<br>`google/gemini-2.0-flash-exp:free`<br>`deepseek/deepseek-r1:free` | 🌐 Nube (Gratis / Pago) |
-| **Groq Cloud** | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile`<br>`mixtral-8x7b-32768` | ⚡ Ultra Rápido |
-| **Ollama Local** | `http://localhost:11434/v1` | `qwen2.5:7b`<br>`llama3.3:latest`<br>`mistral:latest` | 🦙 100% Offline / Privado |
-| **LM Studio** | `http://localhost:1234/v1` | Cualquier modelo GGUF cargado | 💻 Local GUI |
-
-> 💡 **Presets en 1 Clic**: Desde la sección **Ajustes / OmniRoute & IA**, dispones de botones de configuración rápida para alternar entre proveedores al instante con prueba de conexión integrada.
 
 ---
 

@@ -157,13 +157,13 @@ export const OptimizePage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-950/40 via-indigo-950/40 to-slate-900 p-6 rounded-3xl border border-blue-500/20 shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-slate-900 p-6 rounded-3xl border border-blue-200/80 dark:border-blue-500/20 shadow-sm dark:shadow-xl transition-colors">
         <div>
-          <h2 className="text-xl font-black text-slate-100 flex items-center gap-2.5">
-            <Sparkles className="w-6 h-6 text-blue-400" />
+          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+            <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             Estudio de Optimización de CV & Filtros ATS
           </h2>
-          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
             Genera currículums hiper-adaptados a partir de tu CV maestro, maximizando la densidad de palabras clave y garantizando compatibilidad 100% con sistemas ATS (Taleo, Greenhouse, Lever, Workday).
           </p>
         </div>
@@ -171,7 +171,7 @@ export const OptimizePage: React.FC = () => {
         {/* Job Selector Dropdown & Lang Selector */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="w-64">
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
               Vacante a Optimizar
             </label>
             <select
@@ -184,7 +184,7 @@ export const OptimizePage: React.FC = () => {
                   setSelectedJobId(e.target.value);
                 }
               }}
-              className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-semibold text-slate-100 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 shadow-sm"
             >
               {jobs.map((j) => (
                 <option key={j.id} value={j.id}>
@@ -197,14 +197,14 @@ export const OptimizePage: React.FC = () => {
 
           {/* Language Selector */}
           <div className="pt-4">
-            <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700/80 shadow-sm">
+            <div className="flex items-center bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-300 dark:border-slate-700/80 shadow-sm">
               <button
                 type="button"
                 onClick={() => setSelectedLang('es')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   selectedLang === 'es'
                     ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
                 title="Generar e interpretar en Español"
               >
@@ -213,10 +213,10 @@ export const OptimizePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedLang('en')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   selectedLang === 'en'
                     ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
                 title="Generate & parse in English"
               >
@@ -229,7 +229,7 @@ export const OptimizePage: React.FC = () => {
             <button
               onClick={handleGenerateCV}
               disabled={isGenerating}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-600/25 transition-all cursor-pointer disabled:opacity-50"
             >
               {isGenerating ? (
                 <>
@@ -248,30 +248,30 @@ export const OptimizePage: React.FC = () => {
       </div>
 
       {/* Master CV Reference Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-black text-sm">
+          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-sm">
             CV
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-200">
-                Fuente Única de Verdad: <strong className="text-indigo-400">{masterCV.personalInfo?.name || 'CV Maestro'}</strong>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Fuente Única de Verdad: <strong className="text-indigo-600 dark:text-indigo-400">{masterCV.personalInfo?.name || 'CV Maestro'}</strong>
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20">
                 {masterCV.personalInfo?.roleTitle || 'Perfil Profesional'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               {masterCV.workExperience?.length || 0} Experiencias laborales • {masterCV.skillCategories?.reduce((acc, c) => acc + (c.skills?.length || 0), 0) || 0} Habilidades registradas • {masterCV.education?.length || 0} Títulos
             </p>
           </div>
         </div>
         <button
           onClick={() => navigate('/cv')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition cursor-pointer"
         >
-          <FileText className="w-3.5 h-3.5 text-indigo-400" />
+          <FileText className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
           Subir / Editar CV Maestro
         </button>
       </div>
@@ -282,11 +282,11 @@ export const OptimizePage: React.FC = () => {
         <div className="lg:col-span-5 space-y-6">
           {/* Target Job Card */}
           {activeJob && !useCustomJob && (
-            <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-lg">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-bold text-sm text-slate-100">{activeJob.position}</h3>
-                  <p className="text-xs text-indigo-400 font-semibold">{activeJob.company}</p>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{activeJob.position}</h3>
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">{activeJob.company}</p>
                 </div>
                 <Badge variant="primary">{activeJob.workMode}</Badge>
               </div>
@@ -294,14 +294,14 @@ export const OptimizePage: React.FC = () => {
               {/* Tech Stack */}
               {activeJobTechs.length > 0 && (
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
                     Stack Clave de la Vacante
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {activeJobTechs.map((tech: string, idx: number) => (
                       <span
                         key={idx}
-                        className="text-[10px] px-2 py-0.5 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-mono"
+                        className="text-[10px] px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-mono"
                       >
                         {tech}
                       </span>
@@ -312,10 +312,10 @@ export const OptimizePage: React.FC = () => {
 
               {/* Description Preview */}
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
                   Descripción & Requisitos
                 </span>
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 max-h-48 overflow-y-auto leading-relaxed whitespace-pre-wrap">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 max-h-48 overflow-y-auto leading-relaxed whitespace-pre-wrap">
                   {activeJob.description || 'Sin descripción detallada.'}
                 </div>
               </div>
@@ -324,8 +324,8 @@ export const OptimizePage: React.FC = () => {
 
           {/* Custom Job Input if selected */}
           {useCustomJob && (
-            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 shadow-lg">
-              <h3 className="font-bold text-xs text-slate-100 uppercase tracking-wider">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm">
+              <h3 className="font-bold text-xs text-slate-900 dark:text-slate-100 uppercase tracking-wider">
                 Pega la Descripción de la Vacante
               </h3>
               <textarea
@@ -333,7 +333,7 @@ export const OptimizePage: React.FC = () => {
                 placeholder="Pega aquí el texto completo del empleo..."
                 value={customJobText}
                 onChange={(e) => setCustomJobText(e.target.value)}
-                className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-blue-500"
               />
             </div>
           )}
@@ -349,16 +349,16 @@ export const OptimizePage: React.FC = () => {
 
         {/* Right Column: Tailored CV / Document Preview (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
             {/* Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-400" />
+                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <h3 className="text-sm font-bold text-slate-100">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     {currentTailoredCv ? 'Currículum Optimizado para ATS' : 'Vista Previa del CV Maestro'}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {currentTailoredCv
                       ? `Adaptado específicamente para ${activeJob?.company || 'la vacante'}`
                       : 'CV base listo para ser optimizado'}
@@ -374,10 +374,10 @@ export const OptimizePage: React.FC = () => {
                       'cv_text'
                     )
                   }
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
                 >
                   {copiedKey === 'cv_text' ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
@@ -385,11 +385,11 @@ export const OptimizePage: React.FC = () => {
                 </button>
 
                 {/* PDF Buttons ES / EN */}
-                <div className="flex items-center bg-slate-850 p-0.5 rounded-xl border border-slate-700 shadow-sm">
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                   <button
                     onClick={() => handleDownloadPDF('es')}
                     disabled={isGeneratingPdf}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/90 hover:bg-blue-600 text-white text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50"
                     title="Descargar PDF ATS en Español"
                   >
                     <Download className="w-3 h-3" />
@@ -398,7 +398,7 @@ export const OptimizePage: React.FC = () => {
                   <button
                     onClick={() => handleDownloadPDF('en')}
                     disabled={isGeneratingPdf}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 ml-1"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 ml-1"
                     title="Download ATS PDF in English"
                   >
                     <Download className="w-3 h-3" />
@@ -410,19 +410,19 @@ export const OptimizePage: React.FC = () => {
 
             {/* Document Content View */}
             {currentTailoredCv ? (
-              <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed max-h-[600px] overflow-y-auto">
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed max-h-[600px] overflow-y-auto">
                 {currentTailoredCv.fullMarkdown}
               </div>
             ) : (
               <div className="text-center py-20 space-y-4">
-                <div className="w-16 h-16 rounded-3xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto">
+                <div className="w-16 h-16 rounded-3xl bg-blue-50 dark:bg-blue-600/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
                   <Sparkles className="w-8 h-8" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-slate-100">
+                  <h4 className="text-base font-bold text-slate-900 dark:text-slate-100">
                     Aún no has generado el CV adaptado para esta vacante
                   </h4>
-                  <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
                     Haz clic en "Generar CV Adaptado" para que el motor de IA extraiga las palabras clave de la oferta y restructure tu experiencia bajo la fórmula STAR/XYZ.
                   </p>
                 </div>
@@ -439,13 +439,13 @@ export const OptimizePage: React.FC = () => {
 
             {/* Quick Link to Strategy */}
             {activeJob && (
-              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/40 border border-slate-800">
-                <span className="text-xs text-slate-300">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
+                <span className="text-xs text-slate-600 dark:text-slate-300">
                   ¿Ya tienes el CV listo? Pasa a la fase de postulación y mensajes.
                 </span>
                 <button
                   onClick={() => navigate(`/strategy?jobId=${activeJob.id}`)}
-                  className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 font-semibold cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-500 font-semibold cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   Ver Estrategia de Contacto →
