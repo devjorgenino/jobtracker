@@ -84,8 +84,8 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, isOpen, onC
     }
     try {
       let cvToRender = tailoredCv;
-      if (lang === 'en' && tailoredCv.lang !== 'en' && aiConfig) {
-        toast.info('Traduciendo CV adaptado al inglés con IA...');
+      if (lang === 'en' && tailoredCv.lang !== 'en') {
+        toast.info('Traduciendo CV adaptado al inglés...');
         cvToRender = await CVTranslationService.translateCV(tailoredCv, 'en', aiConfig);
       }
       const sanitizedCompany = job.company.replace(/[^a-zA-Z0-9_-]/g, '_');

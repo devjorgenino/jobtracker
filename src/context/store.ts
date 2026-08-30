@@ -443,6 +443,23 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'jobtracker-storage-v2',
+      merge: (persistedState: any, currentState: AppState) => {
+        const persisted = (persistedState as Partial<AppState>) || {};
+        const mergedAiConfig: AIConfig = {
+          ...DEFAULT_AI_CONFIG,
+          ...(persisted.aiConfig || {}),
+          omnirouteApiKey: persisted.aiConfig?.omnirouteApiKey || DEFAULT_AI_CONFIG.omnirouteApiKey,
+          openrouterApiKey: persisted.aiConfig?.openrouterApiKey || DEFAULT_AI_CONFIG.openrouterApiKey,
+          huggingfaceApiKey: persisted.aiConfig?.huggingfaceApiKey || DEFAULT_AI_CONFIG.huggingfaceApiKey,
+          customApiKey: persisted.aiConfig?.customApiKey || DEFAULT_AI_CONFIG.customApiKey,
+        };
+
+        return {
+          ...currentState,
+          ...persisted,
+          aiConfig: mergedAiConfig,
+        };
+      },
     }
   )
 );

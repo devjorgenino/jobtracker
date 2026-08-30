@@ -9,6 +9,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { TailoredCV, MasterCV } from '../../types/cv';
 import { t, type Lang } from '../../i18n';
+import { CVTranslationService } from '../cv/cvTranslationService';
 
 /* ─────────────────────────── Styles ─────────────────────────── */
 const styles = StyleSheet.create({
@@ -193,30 +194,27 @@ const styles = StyleSheet.create({
 
 /* ─────────────────────── ATS Resume Document ─────────────────────── */
 export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV; lang?: Lang }> = ({ cv, lang = 'es' }) => {
-  const p = cv.personalInfo || {
+  // If target is English and input is in Spanish or generic, ensure full high-fidelity English translation
+  const effectiveCV = lang === 'en' ? CVTranslationService.translateCVToEnglishSync(cv) : cv;
+
+  const p = effectiveCV.personalInfo || {
     name: 'Jorge Niño',
-    roleTitle: 'Product Engineer | Full-Stack Developer',
+    roleTitle: lang === 'en' ? 'Product Engineer | Full-Stack Developer | AI-Native Development (Cursor, Claude Code)' : 'Ingeniero de Producto | Desarrollador Full-Stack',
     email: 'jorgenino.dev@gmail.com',
     phone: '+58 412-350-6984',
-    location: 'Remoto — Venezuela (LATAM)',
+    location: lang === 'en' ? 'Remote — Venezuela (LATAM)' : 'Remoto — Venezuela (LATAM)',
     summary: '',
   };
 
-  // A tailored CV already generated in `lang` keeps its body; a Master CV in
-  // another language must be rendered via the AI-translated snapshot supplied
-  // by `translateMasterCVForPdf` (see cvTranslationService). We prefer the
-  // translated body here so the PDF content matches the requested language.
   const summary =
-    (lang === 'en' ? (cv as any)._enSummary : null) ||
-    (cv as TailoredCV).summary ||
-    p.summary ||
+    (lang === 'en' ? ((effectiveCV as any)._enSummary || (effectiveCV as TailoredCV).summary || p.summary) : ((effectiveCV as TailoredCV).summary || p.summary)) ||
     '';
-  const workExperience = cv.workExperience || [];
-  const skillCategories = cv.skillCategories || [];
-  const education = cv.education || [];
-  const projects = cv.projects || [];
-  const certifications = cv.certifications || [];
-  const languages = cv.languages || [];
+  const workExperience = effectiveCV.workExperience || [];
+  const skillCategories = effectiveCV.skillCategories || [];
+  const education = effectiveCV.education || [];
+  const projects = effectiveCV.projects || [];
+  const certifications = effectiveCV.certifications || [];
+  const languages = effectiveCV.languages || [];
 
   // Build contact string separated by " | "
   const contactParts: string[] = [];
@@ -380,7 +378,8 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV; lang?: Lan
 export class ATSPDFService {
   /** Generates a Blob representing the PDF in the specified language */
   static async generatePDFBlob(cv: TailoredCV | MasterCV, lang: Lang = 'es'): Promise<Blob> {
-    const doc = <ATSResumeDocument cv={cv} lang={lang} />;
+    const effectiveCV = lang === 'en' ? CVTranslationService.translateCVToEnglishSync(cv) : cv;
+    const doc = <ATSResumeDocument cv={effectiveCV} lang={lang} />;
     return await pdf(doc).toBlob();
   }
 

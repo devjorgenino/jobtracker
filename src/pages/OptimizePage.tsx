@@ -4,6 +4,7 @@ import { useStore } from '../context/store';
 import { CVTailorService } from '../services/hr/cvTailorService';
 import { ATSService } from '../services/hr/atsService';
 import { ATSPDFService } from '../services/pdf/atsPdfGenerator';
+import { CVTranslationService } from '../services/cv/cvTranslationService';
 import { ATSScore } from '../components/common/ATSScore';
 import { Badge } from '../components/common/Badge';
 import type { Lang } from '../i18n';
@@ -126,13 +127,14 @@ export const OptimizePage: React.FC = () => {
   };
 
   const handleDownloadPDF = async (lang: 'es' | 'en' = selectedLang) => {
-    const cvToDownload = currentTailoredCv || masterCV;
+    const rawCv = currentTailoredCv || masterCV;
     setIsGeneratingPdf(true);
     toast.info(`Generando PDF ATS (${lang.toUpperCase()})...`);
     try {
+      const cvToDownload = await CVTranslationService.translateCV(rawCv, lang, aiConfig);
       const filename = activeJob
         ? `CV_${activeJob.company.replace(/\s+/g, '_')}_${activeJob.position.replace(/\s+/g, '_')}_${lang.toUpperCase()}_ATS.pdf`
-        : `CV_${(masterCV.personalInfo?.name || 'Candidato').replace(/\s+/g, '_')}_${lang.toUpperCase()}_ATS.pdf`;
+        : `CV_${(masterCV.personalInfo?.name || 'Jorge_Nino').replace(/\s+/g, '_')}_${lang.toUpperCase()}_ATS.pdf`;
 
       await ATSPDFService.downloadPDF(cvToDownload, lang, filename);
       toast.success(`📥 PDF (${lang.toUpperCase()}) descargado exitosamente.`);

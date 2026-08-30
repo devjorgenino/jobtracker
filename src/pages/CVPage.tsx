@@ -171,9 +171,9 @@ export const CVPage: React.FC = () => {
     toast.info(`Generando PDF ATS optimizado (${lang.toUpperCase()})...`);
     try {
       let cvToRender = cvForm;
-      // If downloading in English and AI is configured, perform real translation
-      if (lang === 'en' && aiConfig) {
-        toast.info('Traduciendo contenido al inglés con IA...');
+      // If downloading in English, perform full high-quality translation
+      if (lang === 'en') {
+        toast.info('Traduciendo contenido completo al inglés...');
         cvToRender = await CVTranslationService.translateCV(cvForm, 'en', aiConfig);
       }
       const name = (cvToRender.personalInfo?.name || 'CV').replace(/\s+/g, '_');
