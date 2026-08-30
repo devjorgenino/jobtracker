@@ -1,124 +1,159 @@
-import { Draggable } from '@hello-pangea/dnd';
-import { MapPin, DollarSign, ExternalLink, Trash2, MoreVertical, Edit2, Eye, Flag } from 'lucide-react';
-import type { Job } from '@/types';
-import { Card } from '@/components/common';
-import { cn } from '@/utils/cn';
-import { useState } from 'react';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import React from 'react';
+import type { Job } from '../../types/job';
+import { useStore } from '../../context/store';
+import {
+  Building2,
+  MapPin,
+  DollarSign,
+  Sparkles,
+  Send,
+  CheckCircle2,
+} from 'lucide-react';
+import { Badge } from '../common/Badge';
+import { useNavigate } from 'react-router-dom';
 
 interface JobCardProps {
   job: Job;
-  index: number;
-  onDelete: (id: string) => void;
-  onEdit: (job: Job) => void;
-  onView: (job: Job) => void;
+  onOpenDetails: (job: Job) => void;
 }
 
-const priorityColors = {
-  high: 'bg-error/10 text-error',
-  medium: 'bg-warning/10 text-warning',
-  low: 'bg-success/10 text-success',
-};
+export const JobCard: React.FC<JobCardProps> = ({ job, onOpenDetails }) => {
+  const { tailoredCvs } = useStore();
+  const navigate = useNavigate();
 
-export function JobCard({ job, index, onDelete, onEdit, onView }: JobCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const tailoredCv = tailoredCvs[job.id];
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return 'danger';
+      case 'high':
+        return 'warning';
+      case 'medium':
+        return 'primary';
+      default:
+        return 'default';
+    }
+  };
+
+  const getWorkModeBadge = (mode: string) => {
+    switch (mode) {
+      case 'Remoto':
+        return <Badge variant="success" size="sm">🌐 Remoto</Badge>;
+      case 'Híbrido':
+        return <Badge variant="warning" size="sm">🏢 Híbrido</Badge>;
+      default:
+        return <Badge variant="default" size="sm">📍 Presencial</Badge>;
+    }
+  };
+
+  const techStackList: string[] = Array.isArray(job.techStack)
+    ? job.techStack
+    : typeof job.techStack === 'string'
+    ? (job.techStack as string).split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
 
   return (
-    <Draggable draggableId={job.id} index={index}>
-      {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          className={cn('mb-2 md:mb-3', snapshot.isDragging && 'opacity-50 scale-105 shadow-lg')}
-          role="listitem"
-          aria-label={`${job.position} en ${job.company}${job.priority ? `, prioridad ${job.priority}` : ''}`}
-        >
-          <Card className="p-3 md:p-4 hover:shadow-md transition-all cursor-grab active:cursor-grabbing">
-            <div className="flex justify-between items-start gap-2">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm md:text-base text-primary truncate">{job.position}</h3>
-                <p className="text-xs md:text-sm text-text-muted truncate">{job.company}</p>
-              </div>
-              
-              <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen}>
-                <DropdownMenu.Trigger asChild>
-                  <button
-                    className="p-1 hover:bg-white rounded transition-colors flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-accent rounded-md"
-                    aria-label="Opciones para {job.position}"
-                    aria-haspopup="menu"
-                  >
-                    <MoreVertical className="w-4 h-4 text-text-muted" aria-hidden="true" />
-                  </button>
-                </DropdownMenu.Trigger>
-                  <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    className="bg-white rounded-md shadow-lg border border-border p-1 min-w-[160px] z-50"
-                    sideOffset={5}
-                  >
-                    <DropdownMenu.Item
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-primary rounded hover:bg-surface cursor-pointer outline-none focus:bg-surface focus:outline-none"
-                      onClick={() => onView(job)}
-                    >
-                      <Eye className="w-4 h-4" aria-hidden="true" />
-                      Ver detalles
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-primary rounded hover:bg-surface cursor-pointer outline-none focus:bg-surface focus:outline-none"
-                      onClick={() => onEdit(job)}
-                    >
-                      <Edit2 className="w-4 h-4" aria-hidden="true" />
-                      Editar
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Separator className="h-px bg-border my-1" />
-                    <DropdownMenu.Item
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-error rounded hover:bg-error/5 cursor-pointer outline-none focus:bg-error/5 focus:outline-none"
-                      onClick={() => onDelete(job.id)}
-                    >
-                      <Trash2 className="w-4 h-4" aria-hidden="true" />
-                      Eliminar
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-            </div>
+    <div className="group relative rounded-2xl bg-slate-900/90 border border-slate-800/90 hover:border-blue-500/50 p-4 shadow-lg hover:shadow-blue-500/5 transition-all space-y-3 cursor-pointer">
+      {/* Card Header: Position & Priority / Menu */}
+      <div className="flex items-start justify-between gap-2" onClick={() => onOpenDetails(job)}>
+        <div className="min-w-0 flex-1">
+          <h4 className="text-xs font-bold text-slate-100 group-hover:text-blue-400 transition-colors truncate">
+            {job.position}
+          </h4>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+            <Building2 className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+            <span className="truncate font-medium text-slate-300">{job.company}</span>
+          </div>
+        </div>
 
-            <div className="mt-2 md:mt-3 flex flex-wrap gap-1 md:gap-2 text-xs text-text-muted">
-              {job.location && (
-                <span className="flex items-center gap-1 bg-surface px-1.5 py-0.5 rounded" aria-label="Ubicación">
-                  <MapPin className="w-3 h-3" aria-hidden="true" />
-                  <span className="truncate max-w-[100px]">{job.location}</span>
-                </span>
-              )}
-              {job.salary && (
-                <span className="flex items-center gap-1 bg-surface px-1.5 py-0.5 rounded" aria-label="Salario">
-                  <DollarSign className="w-3 h-3" aria-hidden="true" />
-                  <span className="truncate max-w-[80px]">{job.salary}</span>
-                </span>
-              )}
-              {job.priority && (
-                <span className={cn('flex items-center gap-1 px-1.5 py-0.5 rounded', priorityColors[job.priority])} aria-label="Prioridad">
-                  <Flag className="w-3 h-3" aria-hidden="true" />
-                  <span className="capitalize">{job.priority}</span>
-                </span>
-              )}
-            </div>
+        {/* Priority Badge */}
+        <Badge variant={getPriorityColor(job.priority)} size="sm">
+          {job.priority === 'urgent' ? 'Urgente' : job.priority === 'high' ? 'Alta' : 'Normal'}
+        </Badge>
+      </div>
 
-            {job.url && (
-              <a
-                href={job.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 md:mt-3 flex items-center gap-1 text-xs text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 rounded"
-                aria-label="Ver oferta de empleo (se abre en nueva pestaña)"
-              >
-                <ExternalLink className="w-3 h-3" aria-hidden="true" />
-                Ver oferta
-              </a>
-            )}
-          </Card>
+      {/* Meta Row: WorkMode, Location & Salary */}
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400" onClick={() => onOpenDetails(job)}>
+        {getWorkModeBadge(job.workMode)}
+        {job.location && (
+          <span className="flex items-center gap-1 text-[10px] text-slate-400 truncate max-w-[120px]">
+            <MapPin className="w-3 h-3 text-slate-500" />
+            {job.location}
+          </span>
+        )}
+        {job.salary && (
+          <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-medium">
+            <DollarSign className="w-3 h-3" />
+            {job.salary}
+          </span>
+        )}
+      </div>
+
+      {/* Tech Stack Preview Tags */}
+      {techStackList.length > 0 && (
+        <div className="flex flex-wrap gap-1" onClick={() => onOpenDetails(job)}>
+          {techStackList.slice(0, 4).map((tech: string, idx: number) => (
+            <span
+              key={idx}
+              className="text-[9px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 font-mono"
+            >
+              {tech}
+            </span>
+          ))}
+          {techStackList.length > 4 && (
+            <span className="text-[9px] px-1 py-0.5 text-slate-500 font-mono">
+              +{techStackList.length - 4}
+            </span>
+          )}
         </div>
       )}
-    </Draggable>
+
+      {/* AI Artifacts Status Indicators */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px]">
+        <div className="flex items-center gap-2">
+          {tailoredCv ? (
+            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+              <CheckCircle2 className="w-3 h-3" />
+              CV ATS {tailoredCv.atsMatchScore ?? tailoredCv.atsScore ?? 90}%
+            </span>
+          ) : (
+            <span className="text-slate-500 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Sin CV adaptado
+            </span>
+          )}
+        </div>
+
+        {/* Portal Source */}
+        <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">
+          {job.portal || 'Web'}
+        </span>
+      </div>
+
+      {/* Quick Action Buttons */}
+      <div className="grid grid-cols-2 gap-1.5 pt-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/optimize?jobId=${job.id}`);
+          }}
+          className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-[10px] font-semibold border border-blue-500/20 transition-all"
+        >
+          <Sparkles className="w-3 h-3" />
+          Optimizar CV
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/strategy?jobId=${job.id}`);
+          }}
+          className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 text-[10px] font-semibold border border-purple-500/20 transition-all"
+        >
+          <Send className="w-3 h-3" />
+          Estrategia
+        </button>
+      </div>
+    </div>
   );
-}
+};

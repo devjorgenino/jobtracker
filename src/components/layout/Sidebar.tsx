@@ -1,123 +1,117 @@
-import { memo } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, Sparkles, MessageSquare, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/utils/cn';
+import {
+  LayoutDashboard,
+  FileText,
+  Sparkles,
+  Send,
+  Puzzle,
+  Settings,
+  Briefcase,
+} from 'lucide-react';
+import { cn } from '../../utils/cn';
+import { useStore } from '../../context/store';
 
-interface SidebarProps {
-  onClose?: () => void;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
-}
+export const Sidebar: React.FC = () => {
+  const jobs = useStore((state) => state.jobs);
+  const activeCount = jobs.filter((j) => !['rejected', 'archived'].includes(j.status)).length;
 
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Solicitudes', description: 'Ver tablero de candidaturas' },
-  { to: '/cv', icon: FileText, label: 'CV', description: 'Gestionar currículums' },
-  { to: '/optimize', icon: Sparkles, label: 'Optimizador', description: 'Optimizar CV con IA' },
-  { to: '/assistant', icon: MessageSquare, label: 'Asistente', description: 'Generar mensajes' },
-];
+  const navItems = [
+    {
+      to: '/',
+      label: 'Tablero Kanban',
+      icon: LayoutDashboard,
+      badge: activeCount > 0 ? activeCount : undefined,
+    },
+    {
+      to: '/optimize',
+      label: 'Optimizar CV (ATS)',
+      icon: Sparkles,
+      highlight: true,
+    },
+    {
+      to: '/strategy',
+      label: 'Estrategia & Outreach',
+      icon: Send,
+    },
+    {
+      to: '/cv',
+      label: 'Mi CV Maestro',
+      icon: FileText,
+    },
+    {
+      to: '/extension',
+      label: 'Extensión Web (1-Clic)',
+      icon: Puzzle,
+    },
+    {
+      to: '/settings',
+      label: 'OmniRoute & IA',
+      icon: Settings,
+    },
+  ];
 
-export const Sidebar = memo(function Sidebar({ onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   return (
-    <aside 
-      className={cn(
-        'h-screen bg-surface border-r border-border flex flex-col flex-shrink-0 relative transition-all duration-200',
-        isCollapsed ? 'w-16' : 'w-64'
-      )}
-      role="navigation"
-      aria-label="Navegación principal"
-    >
-      <div className={cn(
-        'p-4 border-b border-border flex items-center justify-between min-h-[64px]',
-        isCollapsed && 'p-2 justify-center'
-      )}>
-        {!isCollapsed && (
-          <h1 className="text-lg font-bold text-primary flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-accent flex-shrink-0" aria-hidden="true" />
-            <span className="truncate">JobTracker</span>
+    <aside className="w-64 bg-slate-950/80 backdrop-blur-md border-r border-slate-800/80 flex flex-col h-screen fixed left-0 top-0 z-30 select-none">
+      {/* Brand Header */}
+      <div className="p-5 border-b border-slate-800/80 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
+          <Briefcase className="w-5 h-5" />
+        </div>
+        <div>
+          <h1 className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
+            JobTracker <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">AI</span>
           </h1>
-        )}
-        {isCollapsed && (
-          <Sparkles className="w-6 h-6 text-accent flex-shrink-0" aria-hidden="true" />
-        )}
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="lg:hidden p-1.5 hover:bg-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent rounded-md"
-            aria-label="Cerrar menú de navegación"
-          >
-            <X className="w-5 h-5" aria-hidden="true" />
-          </button>
-        )}
+          <p className="text-[11px] text-slate-400">Career & ATS Suite</p>
+        </div>
       </div>
-      
-      <nav className={cn('flex-1 p-3 overflow-y-auto', isCollapsed && 'p-2')}>
-        <ul className="space-y-1" role="list">
-          {navItems.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
-                    'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface',
-                    isActive
-                      ? 'bg-accent text-white shadow-sm'
-                      : 'text-text-muted hover:bg-white hover:text-primary hover:shadow-sm',
-                    isCollapsed && 'justify-center px-2'
-                  )
-                }
-                title={isCollapsed ? item.label : undefined}
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icon 
-                      className={cn(
-                        'w-5 h-5 flex-shrink-0',
-                        isActive ? 'text-white' : 'text-text-muted'
-                      )} 
-                      aria-hidden="true" 
-                    />
-                    {!isCollapsed && (
-                      <div className="flex flex-col text-left">
-                        <span className={cn('truncate', isActive && 'text-white')}>{item.label}</span>
-                        <span className={cn('text-xs font-normal', isActive ? 'text-white/70' : 'text-text-muted')}>{item.description}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+
+      {/* Navigation Links */}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Gestión & Postulaciones
+        </div>
+
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group',
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/80',
+                  item.highlight && !location.pathname.includes(item.to) && 'text-indigo-400 hover:text-indigo-300'
+                )
+              }
+            >
+              <div className="flex items-center gap-3">
+                <Icon className="w-4 h-4 transition-transform group-hover:scale-110" />
+                <span>{item.label}</span>
+              </div>
+              {item.badge !== undefined && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                  {item.badge}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
-      {/* Toggle collapse button - siempre visible en desktop */}
-      {onToggleCollapse && (
-        <button
-          onClick={onToggleCollapse}
-          className={cn(
-            'absolute top-12 right-0 translate-x-1/2 w-6 h-6 bg-white border border-border rounded-full flex items-center justify-center shadow-sm',
-            'hover:bg-surface hover:shadow-md transition-all z-20 focus:outline-none focus:ring-2 focus:ring-accent'
-          )}
-          aria-label={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
-          aria-pressed={isCollapsed}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
-          ) : (
-            <ChevronLeft className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
-          )}
-        </button>
-      )}
-
-      <div className={cn('p-4 border-t border-border', isCollapsed && 'p-2')}>
-        {!isCollapsed && (
-          <p className="text-xs text-text-muted text-center">
-            JobTracker AI v1.0
-          </p>
-        )}
+      {/* Footer Info */}
+      <div className="p-4 border-t border-slate-800/80 bg-slate-950/40">
+        <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-medium text-slate-300 truncate">OmniRoute AI Activo</p>
+            <p className="text-[10px] text-slate-400 truncate">Modelos gratuitos / locales</p>
+          </div>
+        </div>
       </div>
     </aside>
   );
-});
+};

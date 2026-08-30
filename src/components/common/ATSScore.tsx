@@ -1,131 +1,232 @@
-import { AlertCircle, Lightbulb } from 'lucide-react';
-import type { ATSAnalysis } from '@/utils/atsAnalyzer';
+import React from 'react';
+import type { ATSAnalysisResult } from '../../types/ats';
+import { CheckCircle2, XCircle, AlertCircle, Sparkles, TrendingUp } from 'lucide-react';
+import { Badge } from './Badge';
 
 interface ATSScoreProps {
-  analysis: ATSAnalysis | null;
+  score: ATSAnalysisResult;
+  compact?: boolean;
+  onOptimizeClick?: () => void;
 }
 
-export function ATSScore({ analysis }: ATSScoreProps) {
-  if (!analysis) return null;
+export const ATSScore: React.FC<ATSScoreProps> = ({
+  score,
+  compact = false,
+  onOptimizeClick,
+}) => {
+  const { overallScore, grade, keywordMatchScore, formatScore, experienceImpactScore, skillsScore } = score;
 
-  const { score, scoreColor, grade, details, tips, missingKeywords } = analysis;
+  const getScoreColor = (val: number) => {
+    if (val >= 90) return 'text-emerald-400 stroke-emerald-500';
+    if (val >= 75) return 'text-blue-400 stroke-blue-500';
+    if (val >= 60) return 'text-amber-400 stroke-amber-500';
+    return 'text-rose-400 stroke-rose-500';
+  };
 
-  const radius = 40;
+  const getBadgeVariant = (val: number): 'success' | 'primary' | 'warning' | 'danger' => {
+    if (val >= 90) return 'success';
+    if (val >= 75) return 'primary';
+    if (val >= 60) return 'warning';
+    return 'danger';
+  };
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-800/40 border border-slate-700/50">
+        <div className="flex flex-col items-center justify-center w-11 h-11 rounded-lg bg-slate-900 border border-slate-800">
+          <span className={`text-base font-bold ${getScoreColor(overallScore).split(' ')[0]}`}>
+            {overallScore}%
+          </span>
+          <span className="text-[9px] text-slate-400 font-semibold uppercase">{grade}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-200">Compatibilidad ATS</span>
+            <Badge variant={getBadgeVariant(overallScore)} size="sm">
+              Grado {grade}
+            </Badge>
+          </div>
+          <p className="text-[11px] text-slate-400 truncate mt-0.5">
+            {score.matchedKeywords.length} palabras clave coincidentes
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Circular progress math
+  const radius = 42;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
+  const strokeDashoffset = circumference - (overallScore / 100) * circumference;
 
   return (
-    <div className="bg-white rounded-lg border border-border p-4 mt-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-800">Análisis ATS</h3>
-        <span 
-          className="text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200"
-          title="Esta puntuación es orientativa y puede variar entre diferentes sistemas ATS"
-        >
-          Orientativo
-        </span>
-      </div>
-
-      <div className="flex items-center gap-6">
-        <div className="relative w-24 h-24 flex-shrink-0">
-          <svg className="w-24 h-24 transform -rotate-90">
-            <circle
-              cx="48"
-              cy="48"
-              r={radius}
-              stroke="#e5e7eb"
-              strokeWidth="8"
-              fill="none"
-            />
-            <circle
-              cx="48"
-              cy="48"
-              r={radius}
-              stroke={scoreColor}
-              strokeWidth="8"
-              fill="none"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
-              className="transition-all duration-1000 ease-out"
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold" style={{ color: scoreColor }}>
-              {score}
-            </span>
-            <span className="text-xs text-gray-500">/ 100</span>
-          </div>
-        </div>
-
-        <div
-          className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0"
-          style={{ backgroundColor: scoreColor }}
-        >
-          {grade}
-        </div>
-
-        <div className="flex-1 grid grid-cols-2 gap-2 text-xs">
-          <div className="flex justify-between">
-            <span className="text-gray-500">Palabras clave</span>
-            <span className="font-medium">{details.keywordMatch}%</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Formato</span>
-            <span className="font-medium">{details.formatScore}%</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Contenido</span>
-            <span className="font-medium">{details.contentScore}%</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Longitud</span>
-            <span className="font-medium">{details.lengthScore}%</span>
-          </div>
-        </div>
-      </div>
-
-      {missingKeywords.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-4 h-4 text-amber-600" />
-            <h4 className="text-xs font-semibold text-gray-700">Palabras clave que faltan:</h4>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {missingKeywords.slice(0, 8).map((keyword, index) => (
-              <span 
-                key={index} 
-                className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200"
-              >
-                {keyword}
+    <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-6 space-y-6 shadow-xl">
+      {/* Header with Gauge */}
+      <div className="flex flex-col sm:flex-row items-center gap-6 justify-between border-b border-slate-800/80 pb-6">
+        <div className="flex items-center gap-5">
+          {/* Circular SVG Gauge */}
+          <div className="relative w-28 h-28 flex items-center justify-center flex-shrink-0">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r={radius}
+                className="stroke-slate-800"
+                strokeWidth="8"
+                fill="transparent"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r={radius}
+                className={getScoreColor(overallScore).split(' ')[1]}
+                strokeWidth="8"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                fill="transparent"
+                style={{ transition: 'stroke-dashoffset 0.8s ease-in-out' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={`text-2xl font-black ${getScoreColor(overallScore).split(' ')[0]}`}>
+                {overallScore}%
               </span>
-            ))}
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                ATS Score
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-lg font-bold text-slate-100">Evaluación de Filtro ATS</h4>
+              <Badge variant={getBadgeVariant(overallScore)}>Grado {grade}</Badge>
+            </div>
+            <p className="text-xs text-slate-400 mt-1 max-w-md">
+              {score.recruiterSummary || 'Puntuación estimada de compatibilidad con filtros automatizados de reclutamiento (Taleo, Greenhouse, Lever, Workday).'}
+            </p>
           </div>
         </div>
-      )}
 
-      {tips.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-2 mb-2">
-            <Lightbulb className="w-4 h-4 text-accent" />
-            <h4 className="text-xs font-semibold text-gray-700">Sugerencias de mejora:</h4>
-          </div>
-          <ul className="space-y-1.5">
-            {tips.map((tip, index) => (
-              <li key={index} className="text-xs text-gray-600 flex items-start gap-2">
-                <span className="text-accent mt-0.5">•</span>
-                {tip}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="mt-4 pt-3 border-t border-gray-100">
-        <p className="text-xs text-gray-400 italic">
-          Nota: Esta puntuación es orientativa. Los sistemas ATS varían en sus algoritmos de evaluación.
-        </p>
+        {onOptimizeClick && (
+          <button
+            onClick={onOptimizeClick}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            Optimizar con IA
+          </button>
+        )}
       </div>
+
+      {/* Sub-scores Metrics Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800">
+          <div className="text-[11px] text-slate-400 font-medium">Palabras Clave</div>
+          <div className="text-lg font-bold text-slate-100 mt-1">{keywordMatchScore}%</div>
+          <div className="w-full bg-slate-700/50 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div className="bg-blue-500 h-full rounded-full" style={{ width: `${keywordMatchScore}%` }} />
+          </div>
+        </div>
+
+        <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800">
+          <div className="text-[11px] text-slate-400 font-medium">Impacto y Métricas</div>
+          <div className="text-lg font-bold text-slate-100 mt-1">{experienceImpactScore}%</div>
+          <div className="w-full bg-slate-700/50 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div className="bg-purple-500 h-full rounded-full" style={{ width: `${experienceImpactScore}%` }} />
+          </div>
+        </div>
+
+        <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800">
+          <div className="text-[11px] text-slate-400 font-medium">Formato Estándar</div>
+          <div className="text-lg font-bold text-slate-100 mt-1">{formatScore}%</div>
+          <div className="w-full bg-slate-700/50 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${formatScore}%` }} />
+          </div>
+        </div>
+
+        <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800">
+          <div className="text-[11px] text-slate-400 font-medium">Habilidades Agrupadas</div>
+          <div className="text-lg font-bold text-slate-100 mt-1">{skillsScore}%</div>
+          <div className="w-full bg-slate-700/50 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div className="bg-amber-500 h-full rounded-full" style={{ width: `${skillsScore}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Keywords Breakdown */}
+      <div className="space-y-3">
+        <h5 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
+          Análisis de Palabras Clave de la Vacante
+        </h5>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Matched Keywords */}
+          <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+            <div className="text-xs font-semibold text-emerald-400 mb-2 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Keywords Detectadas en tu CV ({score.matchedKeywords.length})
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {score.matchedKeywords.map((kw, idx) => (
+                <Badge key={idx} variant="success" size="sm">
+                  {kw}
+                </Badge>
+              ))}
+              {score.matchedKeywords.length === 0 && (
+                <span className="text-xs text-slate-500">Ninguna keyword crítica detectada aún.</span>
+              )}
+            </div>
+          </div>
+
+          {/* Missing Keywords */}
+          <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20">
+            <div className="text-xs font-semibold text-rose-400 mb-2 flex items-center gap-1.5">
+              <XCircle className="w-3.5 h-3.5" />
+              Keywords Faltantes en la Oferta ({score.missingKeywords.length})
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {score.missingKeywords.map((kw, idx) => (
+                <Badge key={idx} variant="danger" size="sm">
+                  + {kw}
+                </Badge>
+              ))}
+              {score.missingKeywords.length === 0 && (
+                <span className="text-xs text-slate-500">¡Todas las keywords clave están cubiertas!</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Rules Check Breakdown */}
+      {score.ruleChecks && score.ruleChecks.length > 0 && (
+        <div className="space-y-2">
+          <h5 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            Reglas de Compatibilidad ATS
+          </h5>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {score.ruleChecks.map((rule) => (
+              <div
+                key={rule.id}
+                className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-800/30 border border-slate-800"
+              >
+                {rule.passed ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className="text-xs font-medium text-slate-200">{rule.rule}</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">{rule.tip}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
