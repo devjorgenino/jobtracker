@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 import { Modal } from '../common/Modal';
 import { useStore } from '../../context/store';
+import { cn } from '../../utils/cn';
 import { ExtensionSyncService } from '../../services/sync/extensionSync';
 import type { Job, JobStatus, JobPriority, WorkMode } from '../../types/job';
 import { Briefcase, Building2, MapPin, DollarSign, Globe, Tag, Plus } from 'lucide-react';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 export const Layout: React.FC = () => {
   const [isAddJobOpen, setIsAddJobOpen] = useState(false);
   const addJob = useStore((state) => state.addJob);
+  const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
   const navigate = useNavigate();
 
   // Form state for Manual Job Add
@@ -113,7 +115,12 @@ export const Layout: React.FC = () => {
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col pl-64 min-w-0">
+      <div
+        className={cn(
+          'flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out',
+          sidebarCollapsed ? 'pl-20' : 'pl-64'
+        )}
+      >
         <Navbar onOpenAddJobModal={() => setIsAddJobOpen(true)} />
 
         <main className="flex-1 p-6 md:p-8 overflow-x-hidden">

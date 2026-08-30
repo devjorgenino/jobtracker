@@ -50,6 +50,9 @@ export interface AppState {
   resetAIConfig: () => void;
 
   // UI / Filters Actions
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   setActiveJobId: (id: string | null) => void;
   setFilters: (filters: Partial<AppState['filters']>) => void;
 
@@ -231,6 +234,9 @@ export const useStore = create<AppState>()(
         workMode: 'all',
         portal: 'all',
       },
+      sidebarCollapsed: false,
+      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setSidebarCollapsed: (collapsed: boolean) => set({ sidebarCollapsed: collapsed }),
 
       addJob: (job: Job) => {
         set((state) => {

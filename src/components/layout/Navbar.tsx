@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useStore } from '../../context/store';
 
 interface NavbarProps {
@@ -7,7 +7,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenAddJobModal }) => {
-  const { filters, setFilters, jobs } = useStore();
+  const { filters, setFilters, jobs, sidebarCollapsed, toggleSidebar } = useStore();
 
   const totalJobs = jobs.length;
   const appliedCount = jobs.filter((j) => ['applied', 'screening', 'technical', 'final_interview'].includes(j.status)).length;
@@ -15,16 +15,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAddJobModal }) => {
 
   return (
     <header className="h-16 bg-slate-950/60 backdrop-blur-md border-b border-slate-800/80 px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Search Input */}
-      <div className="relative w-72 md:w-96">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Buscar vacantes, empresas, tecnologías..."
-          value={filters.search}
-          onChange={(e) => setFilters({ search: e.target.value })}
-          className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-        />
+      {/* Left side: Toggle button + Search Input */}
+      <div className="flex items-center gap-3 w-72 md:w-96">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={sidebarCollapsed ? 'Expandir menú lateral' : 'Colapsar menú lateral'}
+          title={sidebarCollapsed ? 'Expandir menú lateral' : 'Colapsar menú lateral'}
+          className="p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 border border-slate-800 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+        >
+          {sidebarCollapsed ? (
+            <PanelLeftOpen className="w-4 h-4 text-blue-400" />
+          ) : (
+            <PanelLeftClose className="w-4 h-4" />
+          )}
+        </button>
+
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Buscar vacantes, empresas, tecnologías..."
+            value={filters.search}
+            onChange={(e) => setFilters({ search: e.target.value })}
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+          />
+        </div>
       </div>
 
       {/* Stats and Action Buttons */}
