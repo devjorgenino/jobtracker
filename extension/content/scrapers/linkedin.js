@@ -12,17 +12,34 @@ window.JobTrackerLinkedInScraper = {
   },
 
   scrape: function() {
+    // --- META TAG EXTRACTION (Highly reliable fallback: immune to CSS changes) ---
+    const metaTitle = document.querySelector('meta[property="og:title"]')?.content || '';
+    const metaDescription = document.querySelector('meta[property="og:description"]')?.content || '';
+
+    // Standard LinkedIn OG Title format: "Job Title at Company | LinkedIn"
+    let metaParsedTitle = '';
+    let metaParsedCompany = '';
+    if (metaTitle) {
+      const parts = metaTitle.split(' at ');
+      if (parts.length > 1) {
+        metaParsedTitle = parts[0].trim();
+        metaParsedCompany = parts[1].split(' | ')[0].trim();
+      } else {
+        metaParsedTitle = metaTitle.split(' | ')[0].trim();
+      }
+    }
+
     // 1. Job Title
     const titleEl = document.querySelector(
-      '.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title, h1.t-24, .topcard__title, h2.topcard__title, .jobs-search__job-details h1'
+      '.job-details-jobs-unified-top-card__job-title h1, .job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title, h1.t-24, .topcard__title, h2.topcard__title, .jobs-search__job-details h1, h1'
     );
-    const title = titleEl?.innerText?.trim() || '';
+    const title = titleEl?.innerText?.trim() || metaParsedTitle || '';
 
     // 2. Company Name & Profile
     const companyEl = document.querySelector(
       '.job-details-jobs-unified-top-card__company-name a, .jobs-unified-top-card__company-name a, .jobs-unified-top-card__company-name, .topcard__org-name-link, [data-tracking-control-name*="company_name"]'
     );
-    const company = companyEl?.innerText?.trim() || '';
+    const company = companyEl?.innerText?.trim() || metaParsedCompany || '';
     const companyUrl = companyEl?.href || '';
 
     // 3. Location & Work Mode
@@ -51,7 +68,7 @@ window.JobTrackerLinkedInScraper = {
     const descEl = document.querySelector(
       '#job-details, .jobs-description__content, .jobs-box__html-content, .show-more-less-html__markup'
     );
-    const description = descEl?.innerText?.trim() || '';
+    const description = descEl?.innerText?.trim() || metaDescription || '';
 
     // 6. Recruiter / Hiring Team info
     const recruiterCard = document.querySelector(

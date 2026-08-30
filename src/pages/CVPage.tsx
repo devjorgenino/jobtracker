@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../context/store';
 import { CVParserService } from '../services/cv/cvParserService';
+import { CVTranslationService } from '../services/cv/cvTranslationService';
 import { ATSPDFService } from '../services/pdf/atsPdfGenerator';
 import { ATSService } from '../services/hr/atsService';
 import { Badge } from '../components/common/Badge';
@@ -169,8 +170,14 @@ export const CVPage: React.FC = () => {
     setIsGeneratingPdf(true);
     toast.info(`Generando PDF ATS optimizado (${lang.toUpperCase()})...`);
     try {
-      const name = (cvForm.personalInfo?.name || 'CV').replace(/\s+/g, '_');
-      await ATSPDFService.downloadPDF(cvForm, lang, `${name}_${lang.toUpperCase()}.pdf`);
+      let cvToRender = cvForm;
+      // If downloading in English and AI is configured, perform real translation
+      if (lang === 'en' && aiConfig) {
+        toast.info('Traduciendo contenido al inglés con IA...');
+        cvToRender = await CVTranslationService.translateCV(cvForm, 'en', aiConfig);
+      }
+      const name = (cvToRender.personalInfo?.name || 'CV').replace(/\s+/g, '_');
+      await ATSPDFService.downloadPDF(cvToRender, lang, `${name}_${lang.toUpperCase()}.pdf`);
       toast.success(`📥 PDF (${lang.toUpperCase()}) descargado exitosamente.`);
     } catch (e: any) {
       console.error('PDF error:', e);

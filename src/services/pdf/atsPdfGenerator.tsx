@@ -202,7 +202,15 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV; lang?: Lan
     summary: '',
   };
 
-  const summary = (cv as TailoredCV).summary || p.summary || '';
+  // A tailored CV already generated in `lang` keeps its body; a Master CV in
+  // another language must be rendered via the AI-translated snapshot supplied
+  // by `translateMasterCVForPdf` (see cvTranslationService). We prefer the
+  // translated body here so the PDF content matches the requested language.
+  const summary =
+    (lang === 'en' ? (cv as any)._enSummary : null) ||
+    (cv as TailoredCV).summary ||
+    p.summary ||
+    '';
   const workExperience = cv.workExperience || [];
   const skillCategories = cv.skillCategories || [];
   const education = cv.education || [];

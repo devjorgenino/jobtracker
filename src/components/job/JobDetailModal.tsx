@@ -4,6 +4,7 @@ import type { ATSAnalysisResult } from '../../types/ats';
 import { useStore } from '../../context/store';
 import { StatusService } from '../../services/hr/statusService';
 import { ATSPDFService } from '../../services/pdf/atsPdfGenerator';
+import { CVTranslationService } from '../../services/cv/cvTranslationService';
 import { Modal } from '../common/Modal';
 import { Badge } from '../common/Badge';
 import { ATSScore } from '../common/ATSScore';
@@ -46,6 +47,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, isOpen, onC
     tailoredCvs,
     strategies,
     toggleTacticalStep,
+    aiConfig,
   } = useStore();
 
   const navigate = useNavigate();
@@ -81,10 +83,15 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, isOpen, onC
       return;
     }
     try {
+      let cvToRender = tailoredCv;
+      if (lang === 'en' && tailoredCv.lang !== 'en' && aiConfig) {
+        toast.info('Traduciendo CV adaptado al inglés con IA...');
+        cvToRender = await CVTranslationService.translateCV(tailoredCv, 'en', aiConfig);
+      }
       const sanitizedCompany = job.company.replace(/[^a-zA-Z0-9_-]/g, '_');
       const sanitizedPos = job.position.replace(/[^a-zA-Z0-9_-]/g, '_');
       await ATSPDFService.downloadPDF(
-        tailoredCv,
+        cvToRender,
         lang,
         `CV_${sanitizedCompany}_${sanitizedPos}_ATS_${lang.toUpperCase()}.pdf`
       );
