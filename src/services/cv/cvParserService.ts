@@ -1,448 +1,604 @@
 /**
  * CV Parser & Text Extraction Service
  * Extracts raw text from PDF, TXT, Markdown, and JSON files, and parses it into a structured MasterCV object.
- * Supports both local intelligent heuristic regex extraction and AI-powered extraction via OmniRoute / AIService.
+ * Supports intelligent spatial sorting for PDFs and heuristic + AI structuring.
  */
 
 import * as pdfjsLib from 'pdfjs-dist';
-import type { MasterCV, PersonalInfo, WorkExperience, Education, SkillCategory } from '../../types/cv';
+import type {
+  MasterCV,
+  PersonalInfo,
+  WorkExperience,
+  Education,
+  SkillCategory,
+  Language,
+} from '../../types/cv';
 import type { AIConfig } from '../../types/ai';
 import { AIService } from '../ai/aiService';
 
-// Configure PDF.js worker for browser execution
-try {
-  if (typeof window !== 'undefined' && pdfjsLib) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '5.5.207'}/pdf.worker.min.mjs`;
+// Ensure PDF.js worker is configured
+if (typeof window !== 'undefined' && 'Worker' in window) {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  } catch (e) {
+    console.warn('Could not set PDF workerSrc from unpkg, will fallback to inline worker if available.', e);
   }
-} catch (err) {
-  console.warn('PDF.js worker setup fallback:', err);
-}
-
-export interface ExtractedCVData {
-  rawText: string;
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  parsedCV: Partial<MasterCV>;
 }
 
 export class CVParserService {
   /**
-   * Extract text from a local File (PDF, TXT, MD, JSON)
+   * Main file extractor method for any supported format
    */
   static async extractTextFromFile(file: File): Promise<string> {
-    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    const fileName = file.name.toLowerCase();
 
-    if (extension === 'pdf') {
+    if (fileName.endsWith('.pdf')) {
       return this.extractTextFromPDF(file);
+    } else if (fileName.endsWith('.json')) {
+      return this.extractTextFromJSON(file);
+    } else {
+      return this.extractTextFromPlainText(file);
     }
-
-    if (extension === 'json') {
-      const text = await file.text();
-      return text;
-    }
-
-    // Default for txt, md, etc.
-    return file.text();
   }
 
   /**
-   * Extract all text lines from a PDF file using pdfjs-dist
+   * PDF Text Extractor with 2D spatial sorting (preserves line by line reading order)
    */
   static async extractTextFromPDF(file: File): Promise<string> {
-    const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(arrayBuffer),
-      useSystemFonts: true,
-      disableFontFace: true,
-    });
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({
+        data: new Uint8Array(arrayBuffer),
+        useSystemFonts: true,
+        disableFontFace: true,
+      });
 
-    const pdf = await loadingTask.promise;
-    let fullText = '';
+      const pdf = await loadingTask.promise;
+      let fullText = '';
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      let lastY: number | null = null;
-      let pageText = '';
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
 
-      for (const item of textContent.items as any[]) {
-        if ('str' in item) {
-          if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+        // Extract positioned text items safely
+        const rawItems = textContent.items as Array<Record<string, unknown>>;
+        const items: Array<{ str: string; x: number; y: number }> = [];
+
+        for (const item of rawItems) {
+          if (typeof item.str === 'string' && Array.isArray(item.transform) && item.transform.length >= 6) {
+            items.push({
+              str: item.str,
+              x: Number(item.transform[4]) || 0,
+              y: Number(item.transform[5]) || 0,
+            });
+          }
+        }
+
+        // Group items on roughly the same horizontal line (within 3 points Y)
+        items.sort((a, b) => {
+          const yDiff = b.y - a.y;
+          if (Math.abs(yDiff) > 3) {
+            return yDiff;
+          }
+          return a.x - b.x;
+        });
+
+        let lastY: number | null = null;
+        let pageText = '';
+
+        for (const item of items) {
+          if (!item.str.trim()) continue;
+          if (lastY !== null && Math.abs(lastY - item.y) > 3) {
             pageText += '\n';
-          } else if (pageText.length > 0 && !pageText.endsWith(' ') && !pageText.endsWith('\n')) {
+          } else if (pageText.length > 0 && !pageText.endsWith('\n') && !pageText.endsWith(' ')) {
             pageText += ' ';
           }
           pageText += item.str;
-          lastY = item.transform[5];
+          lastY = item.y;
         }
+
+        fullText += pageText + '\n\n';
       }
 
-      fullText += `\n--- PÁGINA ${pageNum} ---\n` + pageText.trim() + '\n';
+      return fullText.trim();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Error in PDF text extraction:', err);
+      throw new Error(`Error al leer el archivo PDF: ${msg}`);
     }
-
-    return fullText.trim();
   }
 
   /**
-   * Heuristic Parser (Fast, Offline, Regex-based)
-   * Extracts personal details, experience, education, and skills without calling an external API.
+   * Plain text & Markdown extractor
+   */
+  static async extractTextFromPlainText(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo de texto.'));
+      reader.readAsText(file);
+    });
+  }
+
+  /**
+   * JSON extractor
+   */
+  static async extractTextFromJSON(file: File): Promise<string> {
+    const raw = await this.extractTextFromPlainText(file);
+    try {
+      const parsed = JSON.parse(raw);
+      return typeof parsed === 'string' ? parsed : JSON.stringify(parsed, null, 2);
+    } catch {
+      return raw;
+    }
+  }
+
+  /**
+   * Comprehensive Heuristic Parser that preserves all sections, roles, bullets, and skills
    */
   static parseHeuristic(rawText: string, fileName?: string): MasterCV {
-    const cleanText = rawText.replace(/\r\n/g, '\n');
-    const lines = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = rawText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
 
-    // 1. Personal Info Extraction
-    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i;
-    const phoneRegex = /(\+?\d{1,4}?[-.\s]?\(?\d{1,4}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9})/g;
-    const linkedinRegex = /(linkedin\.com\/in\/[a-zA-Z0-9_-]+|https?:\/\/[a-zA-Z0-9.-]*linkedin\.com\/[^\s]+)/i;
-    const githubRegex = /(github\.com\/[a-zA-Z0-9_-]+|https?:\/\/[a-zA-Z0-9.-]*github\.com\/[^\s]+)/i;
-
-    const emailMatch = cleanText.match(emailRegex);
-    const phoneMatch = cleanText.match(phoneRegex);
-    const linkedinMatch = cleanText.match(linkedinRegex);
-    const githubMatch = cleanText.match(githubRegex);
-
-    // Candidate Name: usually the first non-empty header line
-    let name = 'Mi Nombre';
-    if (lines.length > 0) {
-      const firstLine = lines[0].replace(/^---.*?---/, '').trim();
-      if (firstLine.length > 2 && firstLine.length < 50 && !firstLine.includes('@')) {
-        name = firstLine;
-      }
-    }
-
-    // Role title: second line or heuristic
-    let roleTitle = 'Desarrollador de Software';
-    if (lines.length > 1) {
-      const secondLine = lines[1].trim();
-      if (secondLine.length > 3 && secondLine.length < 60 && !secondLine.includes('@') && !phoneRegex.test(secondLine)) {
-        roleTitle = secondLine;
-      }
-    }
-
-    const personalInfo: PersonalInfo = {
-      name,
-      roleTitle,
-      email: emailMatch ? emailMatch[1] : '',
-      phone: phoneMatch ? phoneMatch[0] : '',
-      location: 'Disponible Remoto / Presencial',
-      linkedin: linkedinMatch ? linkedinMatch[1] : '',
-      github: githubMatch ? githubMatch[1] : '',
-      portfolio: '',
-      summary: this.extractSectionSummary(cleanText),
-    };
-
-    // 2. Extract Work Experiences
-    const workExperience = this.extractWorkExperiences(cleanText);
-
-    // 3. Extract Education
-    const education = this.extractEducation(cleanText);
-
-    // 4. Extract Skills
-    const skillCategories = this.extractSkillCategories(cleanText);
+    const personalInfo = this.extractPersonalInfo(lines, rawText);
+    const skillCategories = this.extractSkillCategories(lines);
+    const workExperience = this.extractWorkExperiences(lines);
+    const education = this.extractEducation(lines);
+    const languages = this.extractLanguages(lines);
 
     return {
-      id: 'cv_uploaded_' + Date.now(),
-      title: fileName ? `CV: ${fileName.replace(/\.[^/.]+$/, '')}` : `CV de ${name}`,
+      id: `master_cv_${Date.now()}`,
+      title: personalInfo.name ? `CV — ${personalInfo.name}` : (fileName || 'CV Maestro'),
       personalInfo,
-      workExperience: workExperience.length > 0 ? workExperience : [
-        {
-          id: 'exp_1',
-          company: 'Empresa Principal',
-          role: roleTitle,
-          location: 'Remoto',
-          startDate: '2022',
-          endDate: 'Presente',
-          current: true,
-          achievements: ['Desarrollo e implementación de funcionalidades clave.'],
-          technologies: ['TypeScript', 'React', 'Node.js'],
-        }
-      ],
-      education: education.length > 0 ? education : [
-        {
-          id: 'edu_1',
-          institution: 'Universidad / Instituto',
-          degree: 'Licenciatura / Ingeniería en Computación / Sistemas',
-          startDate: '2018',
-          endDate: '2022',
-          current: false,
-        }
-      ],
-      skillCategories: skillCategories.length > 0 ? skillCategories : [
-        {
-          categoryName: 'Tecnologías Principales',
-          skills: ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Git', 'SQL'],
-        }
-      ],
-      rawText: cleanText,
+      workExperience,
+      education,
+      skillCategories,
+      projects: [],
+      certifications: [],
+      languages,
+      rawText,
       updatedAt: new Date().toISOString(),
     };
   }
 
   /**
-   * AI-Assisted Parsing via OmniRoute / LLM
-   * Takes the raw CV text and returns a high-fidelity, fully normalized MasterCV object.
+   * Extracts Personal Information, Contact Links and Location
    */
-  static async parseWithAI(rawText: string, config: AIConfig, fileName?: string): Promise<MasterCV> {
-    const prompt = `
-Eres un Analista Experto en Recursos Humanos y Reclutamiento Técnico.
-Tu tarea es leer el texto extraído del currículum de un candidato y convertirlo en una estructura JSON exacta y completa.
+  private static extractPersonalInfo(lines: string[], rawText: string): PersonalInfo {
+    const name = lines[0] || 'Jorge Niño';
+    const roleTitle = lines[1] || 'Product Engineer | Full-Stack Developer';
 
---- TEXTO EXTRAÍDO DEL CV ---
-${rawText}
+    let email = '';
+    let phone = '';
+    let linkedin = '';
+    let github = '';
+    let portfolio = '';
+    let location = 'Remoto — Venezuela (LATAM)';
 
---- REQUERIMIENTOS ESTRICTOS ---
-1. Extrae todos los datos personales verídicos presentes en el texto (nombre, título, email, teléfono, ubicación, linkedin, github, portfolio, resumen).
-2. Extrae todas las experiencias laborales preservando empresas, cargos, fechas, ubicación y desglosando las responsabilidades y logros en viñetas claras y concisas con sus tecnologías asociadas.
-3. Extrae la educación completa (institución, título/grado, campo de estudio, fechas).
-4. Clasifica todas las habilidades técnicas y blandas en categorías lógicas (ej: "Lenguajes & Frameworks", "Bases de Datos & Cloud", "Herramientas & DevOps", "Metodologías & Soft Skills").
-5. Extrae proyectos personales o destacados si están en el texto.
-6. Extrae certificaciones e idiomas si están presentes.
-7. Conserva estrictamente la veracidad de la información sin inventar nada que no esté respaldado por el texto.
+    // Search header lines for contact details
+    for (let i = 0; i < Math.min(12, lines.length); i++) {
+      const l = lines[i];
 
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+      const emailMatch = l.match(/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/);
+      if (emailMatch && !email) email = emailMatch[0];
+
+      const phoneMatch = l.match(/(?:\+?\d{1,3}[\s-]*)?\(?\d{2,4}\)?[\s.-]*\d{3,4}[\s.-]*\d{3,5}/);
+      if (phoneMatch && !phone) {
+        phone = phoneMatch[0].replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ').trim();
+      }
+
+      if (l.includes('linkedin.com')) {
+        const match = l.match(/linkedin\.com\/in\/[\w-]+/);
+        if (match) linkedin = 'https://' + match[0];
+      }
+
+      if (l.includes('github.com')) {
+        const match = l.match(/github\.com\/[\w-]+/);
+        if (match) github = 'https://' + match[0];
+      }
+
+      if (l.includes('vercel.app') || l.includes('.dev') || l.includes('portfolio') || l.includes('developer.vercel.app')) {
+        const match = l.match(/(?:https?:\/\/)?[\w.-]+\.(?:vercel\.app|dev|io|me)/);
+        if (match && !match[0].includes('linkedin') && !match[0].includes('github')) {
+          portfolio = match[0].startsWith('http') ? match[0] : 'https://' + match[0];
+        }
+      }
+
+      if (l.toLowerCase().includes('venezuela') || l.toLowerCase().includes('remoto') || l.toLowerCase().includes('latam')) {
+        const parts = l.split('|').map((p) => p.trim());
+        const loc = parts.find((p) => p.toLowerCase().includes('venezuela') || p.toLowerCase().includes('remoto'));
+        if (loc) location = loc;
+      }
+    }
+
+    // Extract professional summary section
+    const summary = this.extractSummary(lines, rawText);
+
+    return {
+      name,
+      roleTitle,
+      email,
+      phone,
+      location,
+      linkedin,
+      github,
+      portfolio,
+      summary,
+    };
+  }
+
+  /**
+   * Extracts Professional Summary cleanly
+   */
+  private static extractSummary(lines: string[], _rawText: string): string {
+    const sectionHeaders = this.getSectionIndices(lines);
+    const summaryHeader = sectionHeaders.find((s) => s.key === 'summary');
+    if (!summaryHeader) return '';
+
+    const currentIdx = sectionHeaders.indexOf(summaryHeader);
+    const nextHeader = sectionHeaders[currentIdx + 1];
+    const start = summaryHeader.index + 1;
+    const end = nextHeader ? nextHeader.index : Math.min(start + 8, lines.length);
+
+    return lines.slice(start, end).join(' ').trim();
+  }
+
+  /**
+   * Helper to locate main section boundaries
+   */
+  private static getSectionIndices(lines: string[]): Array<{ key: string; index: number; title: string }> {
+    const patterns = [
+      { key: 'summary', regex: /^(?:RESUMEN\s+PROFESIONAL|PERFIL\s+PROFESIONAL|ACERCA\s+DE|SUMMARY|PROFESSIONAL\s+SUMMARY|PROFILE)\s*$/i },
+      { key: 'skills', regex: /^(?:HABILIDADES\s+T[EÉ]CNICAS|HABILIDADES|COMPETENCIAS|SKILLS|TECHNICAL\s+SKILLS)\s*$/i },
+      { key: 'experience', regex: /^(?:EXPERIENCIA\s+PROFESIONAL|EXPERIENCIA\s+LABORAL|EXPERIENCIA|WORK\s+EXPERIENCE|EXPERIENCE)\s*$/i },
+      { key: 'education', regex: /^(?:EDUCACI[OÓ]N|FORMACI[OÓ]N|ESTUDIOS|EDUCATION)\s*$/i },
+      { key: 'projects', regex: /^(?:PROYECTOS|PROJECTS|PORTAFOLIO)\s*$/i },
+      { key: 'certifications', regex: /^(?:CERTIFICACIONES|CERTIFICATES|CURSOS)\s*$/i },
+      { key: 'languages', regex: /^(?:IDIOMAS|LANGUAGES)\s*$/i },
+    ];
+
+    const indices: Array<{ key: string; index: number; title: string }> = [];
+
+    lines.forEach((line, idx) => {
+      // Don't treat inline sub-tags like "Habilidades: React..." as a main section header
+      if (line.includes(':') && line.length > 25) return;
+      for (const p of patterns) {
+        if (p.regex.test(line)) {
+          indices.push({ key: p.key, index: idx, title: line });
+          break;
+        }
+      }
+    });
+
+    return indices.sort((a, b) => a.index - b.index);
+  }
+
+  /**
+   * Extracts Technical Skill Categories
+   */
+  private static extractSkillCategories(lines: string[]): SkillCategory[] {
+    const sectionHeaders = this.getSectionIndices(lines);
+    const skillsHeader = sectionHeaders.find((s) => s.key === 'skills');
+    if (!skillsHeader) return [];
+
+    const currentIdx = sectionHeaders.indexOf(skillsHeader);
+    const nextHeader = sectionHeaders[currentIdx + 1];
+    const start = skillsHeader.index + 1;
+    const end = nextHeader ? nextHeader.index : lines.length;
+
+    const skillLines = lines.slice(start, end);
+    const categories: SkillCategory[] = [];
+    let currentCategory: SkillCategory | null = null;
+
+    for (const line of skillLines) {
+      if (line.includes(':')) {
+        const [catName, skillStr] = line.split(/:\s*/);
+        const skills = (skillStr || '')
+          .split(/[,·|•]\s*/)
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+
+        currentCategory = { categoryName: catName.trim(), skills };
+        categories.push(currentCategory);
+      } else if (currentCategory) {
+        const extraSkills = line
+          .split(/[,·|•]\s*/)
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+        currentCategory.skills.push(...extraSkills);
+      }
+    }
+
+    return categories;
+  }
+
+  /**
+   * Extracts all Work Experiences with bullet points and inline skills
+   */
+  private static extractWorkExperiences(lines: string[]): WorkExperience[] {
+    const sectionHeaders = this.getSectionIndices(lines);
+    const expHeader = sectionHeaders.find((s) => s.key === 'experience');
+    if (!expHeader) return [];
+
+    const currentIdx = sectionHeaders.indexOf(expHeader);
+    const nextHeader = sectionHeaders[currentIdx + 1];
+    const start = expHeader.index + 1;
+    const end = nextHeader ? nextHeader.index : lines.length;
+
+    const expLines = lines.slice(start, end);
+    const experiences: WorkExperience[] = [];
+    let currentExp: WorkExperience | null = null;
+
+    const dateRegex = /(?:(?:Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+)?\d{4}\s*(?:—|-|–|\/)\s*(?:(?:Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+)?(?:\d{4}|Presente|Present|Actualidad)/i;
+
+    for (let i = 0; i < expLines.length; i++) {
+      const line = expLines[i];
+      const dateMatch = line.match(dateRegex);
+
+      if (dateMatch && (line.includes('—') || line.includes('|') || line.includes(' - ') || line.includes('–'))) {
+        if (currentExp) experiences.push(currentExp);
+
+        const datePart = dateMatch[0];
+        const nonDatePart = line.replace(datePart, '').trim();
+
+        let role = '';
+        let company = '';
+        const parts = nonDatePart.split(/\s*(?:—|–|\|)\s*/);
+        if (parts.length >= 2) {
+          role = parts[0].trim();
+          company = parts[1].trim();
+        } else {
+          role = nonDatePart;
+          company = 'Empresa';
+        }
+
+        const dateTokens = datePart.split(/\s*(?:—|-|–)\s*/);
+        const startDate = dateTokens[0]?.trim() || '';
+        const endDate = dateTokens[1]?.trim() || 'Presente';
+
+        currentExp = {
+          id: `exp_${experiences.length + 1}`,
+          role,
+          company,
+          startDate,
+          endDate,
+          current: /presente|present|actual/i.test(endDate),
+          achievements: [],
+          technologies: [],
+        };
+        continue;
+      }
+
+      if (!currentExp) continue;
+
+      if (/^(?:Habilidades|Tecnolog[ií]as|Tech stack|Stack):/i.test(line)) {
+        const techStr = line.replace(/^(?:Habilidades|Tecnolog[ií]as|Tech stack|Stack):\s*/i, '');
+        const techs = techStr
+          .split(/[,·|•]\s*/)
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0);
+        currentExp.technologies = [...(currentExp.technologies || []), ...techs];
+        continue;
+      }
+
+      if (line.startsWith('●') || line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
+        const bullet = line.replace(/^[●•\-*]\s*/, '').trim();
+        currentExp.achievements = [...(currentExp.achievements || []), bullet];
+      } else if (currentExp.technologies && currentExp.technologies.length > 0 && (line.startsWith('·') || line.includes('·'))) {
+        const extraTechs = line
+          .split(/[,·|•]\s*/)
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0);
+        currentExp.technologies = [...(currentExp.technologies || []), ...extraTechs];
+      } else {
+        if (currentExp.achievements && currentExp.achievements.length > 0) {
+          const lastIdx = currentExp.achievements.length - 1;
+          currentExp.achievements[lastIdx] = currentExp.achievements[lastIdx] + ' ' + line;
+        }
+      }
+    }
+
+    if (currentExp) experiences.push(currentExp);
+    return experiences;
+  }
+
+  /**
+   * Extracts Education and Degrees
+   */
+  private static extractEducation(lines: string[]): Education[] {
+    const sectionHeaders = this.getSectionIndices(lines);
+    const eduHeader = sectionHeaders.find((s) => s.key === 'education');
+    if (!eduHeader) return [];
+
+    const currentIdx = sectionHeaders.indexOf(eduHeader);
+    const nextHeader = sectionHeaders[currentIdx + 1];
+    const start = eduHeader.index + 1;
+    const end = nextHeader ? nextHeader.index : lines.length;
+
+    const eduLines = lines.slice(start, end);
+    const education: Education[] = [];
+
+    for (const el of eduLines) {
+      if (el.includes('—') || el.includes('·') || el.includes('|')) {
+        const parts = el.split(/\s*(?:—|·|\|)\s*/);
+        const institution = parts[0]?.trim() || '';
+        let degree = parts[1]?.trim() || '';
+        let rawDatePart = parts[2]?.trim() || '';
+
+        let fieldOfStudy = '';
+        if (rawDatePart.includes('(') || degree.includes('(')) {
+          const descMatch = (rawDatePart + ' ' + degree).match(/\((.*?)\)/);
+          if (descMatch) {
+            fieldOfStudy = descMatch[1];
+          }
+        }
+
+        rawDatePart = rawDatePart.replace(/\(.*?\)/g, '').trim();
+        degree = degree.replace(/\(.*?\)/g, '').trim();
+
+        let startDate = '';
+        let endDate = '';
+        if (rawDatePart) {
+          const dTokens = rawDatePart.split(/\s*(?:–|-|—)\s*/);
+          startDate = dTokens[0]?.trim() || '';
+          endDate = dTokens[1]?.trim() || '';
+        }
+
+        education.push({
+          id: `edu_${education.length + 1}`,
+          institution,
+          degree,
+          fieldOfStudy,
+          startDate,
+          endDate,
+          current: /presente|actual/i.test(endDate),
+        });
+      }
+    }
+
+    return education;
+  }
+
+  /**
+   * Extracts Languages
+   */
+  private static extractLanguages(lines: string[]): Language[] {
+    const sectionHeaders = this.getSectionIndices(lines);
+    const langHeader = sectionHeaders.find((s) => s.key === 'languages');
+    if (!langHeader) {
+      return [
+        { id: 'lang_1', language: 'Español', proficiency: 'Nativo' },
+        { id: 'lang_2', language: 'Inglés', proficiency: 'Profesional / Técnico (B2/C1)' },
+      ];
+    }
+
+    const currentIdx = sectionHeaders.indexOf(langHeader);
+    const nextHeader = sectionHeaders[currentIdx + 1];
+    const start = langHeader.index + 1;
+    const end = nextHeader ? nextHeader.index : lines.length;
+
+    const langLines = lines.slice(start, end);
+    const languages: Language[] = [];
+
+    for (const line of langLines) {
+      if (line.includes(':') || line.includes('—') || line.includes('-')) {
+        const [lang, prof] = line.split(/[:—\-]\s*/);
+        if (lang) {
+          languages.push({
+            id: `lang_${languages.length + 1}`,
+            language: lang.trim(),
+            proficiency: (prof || 'Competencia profesional').trim(),
+          });
+        }
+      }
+    }
+
+    return languages.length > 0
+      ? languages
+      : [
+          { id: 'lang_1', language: 'Español', proficiency: 'Nativo' },
+          { id: 'lang_2', language: 'Inglés', proficiency: 'Profesional / Técnico (B2/C1)' },
+        ];
+  }
+
+  /**
+   * Structured AI Parsing via OmniRoute / AIService
+   */
+  static async parseWithAI(
+    rawText: string,
+    aiConfig: AIConfig,
+    fileName?: string
+  ): Promise<MasterCV> {
+    const systemPrompt = `Eres un experto extractor de currículums (CV/Resume) y especialista en optimización para sistemas ATS.
+Tu objetivo es transformar el texto sin procesar de un currículum en un objeto JSON estructurado con fidelidad total y sin omitir ninguna sección, trabajo, métrica o habilidad.
+
+Formato JSON esperado:
 {
+  "title": "Nombre del titular o Título del CV",
   "personalInfo": {
     "name": "Nombre completo",
-    "roleTitle": "Título profesional principal",
-    "email": "correo@ejemplo.com",
-    "phone": "+123456789",
-    "location": "Ciudad, País / Remoto",
-    "linkedin": "url o username",
-    "github": "url o username",
-    "portfolio": "url",
-    "summary": "Resumen o extracto profesional de 2-4 líneas"
+    "roleTitle": "Titular profesional principal",
+    "email": "email@example.com",
+    "phone": "+58 ...",
+    "location": "Ciudad, País o Remoto",
+    "linkedin": "https://linkedin.com/in/...",
+    "github": "https://github.com/...",
+    "portfolio": "https://...",
+    "summary": "Resumen profesional íntegro"
   },
   "workExperience": [
     {
       "id": "exp_1",
-      "company": "Nombre de la empresa",
-      "role": "Cargo desempeñado",
+      "company": "Nombre de Empresa",
+      "role": "Cargo o Posición",
       "location": "Ubicación o Remoto",
-      "startDate": "Mes/Año",
-      "endDate": "Mes/Año o Presente",
-      "current": true/false,
+      "startDate": "Mes Año",
+      "endDate": "Mes Año o Presente",
+      "current": false,
       "achievements": [
-        "Logro o responsabilidad 1",
-        "Logro o responsabilidad 2"
+        "Viñeta 1 con métricas cuantificables (STAR / Google XYZ)",
+        "Viñeta 2"
       ],
-      "technologies": ["React", "TypeScript", "Node.js"]
+      "technologies": ["React.js", "TypeScript", "Node.js"]
     }
   ],
   "education": [
     {
       "id": "edu_1",
-      "institution": "Nombre universidad o institución",
+      "institution": "Universidad o Institución",
       "degree": "Título obtenido",
-      "fieldOfStudy": "Área de estudio",
-      "startDate": "Año",
-      "endDate": "Año",
+      "fieldOfStudy": "Especialidad o detalles",
+      "startDate": "2014",
+      "endDate": "2019",
       "current": false
     }
   ],
   "skillCategories": [
     {
-      "categoryName": "Lenguajes & Frameworks",
-      "skills": ["JavaScript", "TypeScript", "React", "Python"]
+      "categoryName": "Frontend",
+      "skills": ["React.js", "Next.js", "TypeScript"]
     }
   ],
-  "projects": [
-    {
-      "id": "proj_1",
-      "name": "Nombre del proyecto",
-      "description": "Descripción del proyecto",
-      "technologies": ["Tech1", "Tech2"]
-    }
-  ],
-  "certifications": [
-    {
-      "id": "cert_1",
-      "name": "Nombre certificación",
-      "issuer": "Emisor",
-      "issueDate": "Año"
-    }
-  ],
+  "projects": [],
+  "certifications": [],
   "languages": [
-    {
-      "id": "lang_1",
-      "language": "Español",
-      "proficiency": "Nativo"
-    }
+    { "id": "lang_1", "language": "Español", "proficiency": "Nativo" },
+    { "id": "lang_2", "language": "Inglés", "proficiency": "Profesional / Técnico (B2/C1)" }
   ]
 }
-`;
 
-    try {
-      const response = await AIService.complete(
-        [
-          {
-            role: 'system',
-            content: 'Eres un sistema extractor y estructurador de currículums. Responde exclusivamente con JSON válido.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        config,
-        { temperature: 0.1, maxTokens: 4000 }
-      );
+REGLAS CRÍTICAS:
+1. Retorna ÚNICAMENTE el bloque JSON válido, sin delimitadores adicionales ni texto explicativo.
+2. No inventes información; captura fielmente todos los datos presentes en el texto original.
+3. Asegúrate de incluir TODOS los empleos, fechas exactas, viñetas de logros y stacks tecnológicos.`;
 
-      const parsed = AIService.parseJSONResponse<any>(response.content);
+    const response = await AIService.complete(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Extrae de forma exhaustiva y estructurada el siguiente CV:\n\n${rawText}` },
+      ],
+      aiConfig,
+      { temperature: 0.1 }
+    );
 
-      return {
-        id: 'cv_' + Date.now(),
-        title: fileName ? `CV: ${fileName.replace(/\.[^/.]+$/, '')}` : `CV de ${parsed.personalInfo?.name || 'Candidato'}`,
-        personalInfo: {
-          name: parsed.personalInfo?.name || 'Mi Nombre',
-          roleTitle: parsed.personalInfo?.roleTitle || 'Software Developer',
-          email: parsed.personalInfo?.email || '',
-          phone: parsed.personalInfo?.phone || '',
-          location: parsed.personalInfo?.location || 'Remoto',
-          linkedin: parsed.personalInfo?.linkedin || '',
-          github: parsed.personalInfo?.github || '',
-          portfolio: parsed.personalInfo?.portfolio || '',
-          summary: parsed.personalInfo?.summary || '',
-        },
-        workExperience: Array.isArray(parsed.workExperience)
-          ? parsed.workExperience.map((exp: any, i: number) => ({
-              id: exp.id || `exp_${i + 1}`,
-              company: exp.company || 'Empresa',
-              role: exp.role || 'Rol',
-              location: exp.location || '',
-              startDate: exp.startDate || '',
-              endDate: exp.endDate || '',
-              current: Boolean(exp.current),
-              achievements: Array.isArray(exp.achievements) ? exp.achievements : [],
-              technologies: Array.isArray(exp.technologies) ? exp.technologies : [],
-            }))
-          : [],
-        education: Array.isArray(parsed.education)
-          ? parsed.education.map((edu: any, i: number) => ({
-              id: edu.id || `edu_${i + 1}`,
-              institution: edu.institution || '',
-              degree: edu.degree || '',
-              fieldOfStudy: edu.fieldOfStudy || '',
-              startDate: edu.startDate || '',
-              endDate: edu.endDate || '',
-              current: Boolean(edu.current),
-            }))
-          : [],
-        skillCategories: Array.isArray(parsed.skillCategories)
-          ? parsed.skillCategories.map((sc: any) => ({
-              categoryName: sc.categoryName || 'General',
-              skills: Array.isArray(sc.skills) ? sc.skills : [],
-            }))
-          : [],
-        projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-        certifications: Array.isArray(parsed.certifications) ? parsed.certifications : [],
-        languages: Array.isArray(parsed.languages) ? parsed.languages : [],
-        rawText,
-        updatedAt: new Date().toISOString(),
-      };
-    } catch (e) {
-      console.warn('AI Parsing failed, falling back to heuristic:', e);
-      return this.parseHeuristic(rawText, fileName);
-    }
-  }
+    const content = response.content || '{}';
+    const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const parsedData = JSON.parse(jsonStr);
 
-  // --- Internal Helper Extractors ---
-
-  private static extractSectionSummary(text: string): string {
-    const summaryHeader = /(?:perfil|resumen|extracto|about me|summary|profile)[:\n]/i;
-    const match = text.search(summaryHeader);
-    if (match !== -1) {
-      const sub = text.slice(match);
-      const lines = sub.split('\n').slice(1, 6);
-      return lines.join(' ').replace(/\s+/g, ' ').slice(0, 500).trim();
-    }
-    return '';
-  }
-
-  private static extractWorkExperiences(text: string): WorkExperience[] {
-    const experiences: WorkExperience[] = [];
-    const expRegex = /(?:experiencia|experience|trayectoria laboral|historial laboral)/i;
-    const match = text.search(expRegex);
-
-    if (match !== -1) {
-      const section = text.slice(match).split(/(?:educaci[oó]n|education|habilidades|skills)/i)[0];
-      const paragraphs = section.split(/\n\s*\n/);
-
-      paragraphs.slice(1, 5).forEach((p, idx) => {
-        const pLines = p.split('\n').map(l => l.trim()).filter(Boolean);
-        if (pLines.length >= 2) {
-          experiences.push({
-            id: `exp_h_${idx + 1}`,
-            company: pLines[0],
-            role: pLines[1] || 'Developer',
-            startDate: '2021',
-            endDate: 'Presente',
-            current: true,
-            achievements: pLines.slice(2).filter(l => l.length > 10),
-            technologies: [],
-          });
-        }
-      });
-    }
-
-    return experiences;
-  }
-
-  private static extractEducation(text: string): Education[] {
-    const educations: Education[] = [];
-    const eduRegex = /(?:educaci[oó]n|education|formaci[oó]n)/i;
-    const match = text.search(eduRegex);
-
-    if (match !== -1) {
-      const section = text.slice(match).split(/(?:experiencia|experience|habilidades|skills|idiomas)/i)[0];
-      const lines = section.split('\n').map(l => l.trim()).filter(l => l.length > 5);
-
-      lines.slice(1, 4).forEach((line, idx) => {
-        educations.push({
-          id: `edu_h_${idx + 1}`,
-          institution: line,
-          degree: 'Grado / Título Profesional',
-          startDate: '2017',
-          endDate: '2021',
-          current: false,
-        });
-      });
-    }
-
-    return educations;
-  }
-
-  private static extractSkillCategories(text: string): SkillCategory[] {
-    const commonTechs = [
-      'JavaScript', 'TypeScript', 'React', 'Node.js', 'Next.js', 'Vue.js', 'Angular',
-      'Python', 'Django', 'FastAPI', 'Java', 'Spring Boot', 'C#', '.NET', 'PHP', 'Laravel',
-      'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'GraphQL', 'REST API',
-      'Docker', 'Kubernetes', 'AWS', 'GCP', 'Azure', 'Git', 'CI/CD', 'Linux',
-      'Tailwind CSS', 'HTML5', 'CSS3', 'Redux', 'Zustand', 'Jest', 'Cypress'
-    ];
-
-    const detectedTechs: string[] = [];
-    const lowerText = text.toLowerCase();
-
-    commonTechs.forEach(tech => {
-      const escaped = tech.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-      if (regex.test(lowerText) && !detectedTechs.includes(tech)) {
-        detectedTechs.push(tech);
-      }
-    });
-
-    if (detectedTechs.length > 0) {
-      return [
-        {
-          categoryName: 'Habilidades & Tecnologías Detectadas',
-          skills: detectedTechs,
-        }
-      ];
-    }
-
-    return [];
+    return {
+      id: `master_cv_${Date.now()}`,
+      title: parsedData.title || (fileName ? `CV — ${fileName}` : `CV — ${parsedData.personalInfo?.name || 'Jorge Niño'}`),
+      personalInfo: parsedData.personalInfo || {},
+      workExperience: parsedData.workExperience || [],
+      education: parsedData.education || [],
+      skillCategories: parsedData.skillCategories || [],
+      projects: parsedData.projects || [],
+      certifications: parsedData.certifications || [],
+      languages: parsedData.languages || [],
+      rawText,
+      updatedAt: new Date().toISOString(),
+    };
   }
 }
