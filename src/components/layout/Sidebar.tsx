@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileText,
@@ -10,21 +10,31 @@ import {
   Briefcase,
   ChevronLeft,
   ChevronRight,
+  LogOut,
+  Cloud,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useStore } from '../../context/store';
+import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const jobs = useStore((state) => state.jobs);
   const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useStore((state) => state.toggleSidebar);
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
+  };
 
   const activeCount = jobs.filter((j) => !['rejected', 'archived'].includes(j.status)).length;
 
   const navItems = [
     {
-      to: '/',
+      to: '/dashboard',
       label: 'Tablero Kanban',
       shortLabel: 'Kanban',
       icon: LayoutDashboard,
@@ -62,6 +72,17 @@ export const Sidebar: React.FC = () => {
       icon: Settings,
     },
   ];
+
+  const userInitial = (
+    user?.user_metadata?.full_name?.[0] ||
+    user?.email?.[0] ||
+    'U'
+  ).toUpperCase();
+
+  const userName =
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Usuario';
 
   return (
     <aside
@@ -186,25 +207,57 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* Footer Info */}
+      {/* User Authentication & Session Section (Solo botón de cerrar sesión) */}
       <div className="p-3 border-t border-slate-200/90 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/40 transition-colors">
         {sidebarCollapsed ? (
-          <div
-            className="flex justify-center p-2 rounded-xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 group relative cursor-pointer"
-            title="OmniRoute AI Activo (Modelos gratuitos / locales)"
-          >
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <div className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg shadow-xl border border-slate-700 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50">
-              OmniRoute AI Activo
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm group relative cursor-pointer"
+              title={`${userName} (${user?.email || ''})`}
+            >
+              {userInitial}
+              <div className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg shadow-xl border border-slate-700 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50">
+                {userName}
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/50 transition-all cursor-pointer group relative"
+              title="Cerrar Sesión"
+              aria-label="Cerrar Sesión"
+            >
+              <LogOut className="w-4 h-4" />
+              <div className="absolute left-full ml-3 px-2.5 py-1 bg-rose-950 text-rose-200 text-[11px] rounded-lg shadow-xl border border-rose-800 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50">
+                Cerrar Sesión
+              </div>
+            </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-medium text-slate-800 dark:text-slate-300 truncate">OmniRoute AI Activo</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Modelos gratuitos / locales</p>
+          <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-100/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm">
+                {userInitial}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {userName}
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                  <Cloud className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                  <span className="truncate">Nube Conectada</span>
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/50 transition-all cursor-pointer shrink-0"
+              title="Cerrar Sesión"
+              aria-label="Cerrar Sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>

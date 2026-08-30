@@ -27,6 +27,7 @@ export interface AppState {
   };
 
   // Job Actions
+  setJobs: (jobs: Job[]) => void;
   addJob: (job: Job) => void;
   updateJob: (id: string, updates: Partial<Job>) => void;
   deleteJob: (id: string) => void;
@@ -38,10 +39,12 @@ export interface AppState {
   updateMasterCV: (updates: Partial<MasterCV>) => void;
 
   // Tailored CV Actions
+  setTailoredCvs: (cvs: Record<string, TailoredCV>) => void;
   setTailoredCV: (jobId: string, cv: TailoredCV) => void;
   deleteTailoredCV: (jobId: string) => void;
 
   // Strategy Actions
+  setStrategies: (strategies: Record<string, JobStrategy>) => void;
   setStrategy: (jobId: string, strategy: JobStrategy) => void;
   toggleTacticalStep: (jobId: string, stepId: string) => void;
 
@@ -245,6 +248,10 @@ export const useStore = create<AppState>()(
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed: boolean) => set({ sidebarCollapsed: collapsed }),
 
+      setJobs: (jobs: Job[]) => {
+        set({ jobs });
+      },
+
       addJob: (job: Job) => {
         set((state) => {
           // Check if job already exists (by ID or exact URL)
@@ -333,6 +340,10 @@ export const useStore = create<AppState>()(
         }));
       },
 
+      setTailoredCvs: (cvs: Record<string, TailoredCV>) => {
+        set({ tailoredCvs: cvs });
+      },
+
       setTailoredCV: (jobId: string, cv: TailoredCV) => {
         set((state) => ({
           tailoredCvs: {
@@ -351,6 +362,10 @@ export const useStore = create<AppState>()(
             jobs: state.jobs.map((j) => (j.id === jobId ? { ...j, tailoredCvId: undefined } : j)),
           };
         });
+      },
+
+      setStrategies: (strategies: Record<string, JobStrategy>) => {
+        set({ strategies });
       },
 
       setStrategy: (jobId: string, strategy: JobStrategy) => {
