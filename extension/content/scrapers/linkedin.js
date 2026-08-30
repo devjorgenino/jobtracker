@@ -7,7 +7,19 @@ window.JobTrackerLinkedInScraper = {
   name: 'LinkedIn',
   
   detect: function() {
-    return window.location.hostname.includes('linkedin.com');
+    if (!window.location.hostname.includes('linkedin.com')) return false;
+    
+    // Check if URL or DOM represents a job detail, job search, collections, or job view
+    const path = window.location.pathname.toLowerCase();
+    const search = window.location.search.toLowerCase();
+    
+    const isJobsPath = path.includes('/jobs') || path.includes('/job/') || path.includes('/talent/job-postings');
+    const hasJobParam = search.includes('currentjobid=') || search.includes('jobid=');
+    const hasJobElements = !!document.querySelector(
+      '.jobs-details, .job-details, .jobs-search__job-details, .job-view-layout, .jobs-description, [data-job-id], .jobs-search-results-list, .job-details-jobs-unified-top-card'
+    );
+    
+    return isJobsPath || hasJobParam || hasJobElements;
   },
 
   cleanText: function(text) {

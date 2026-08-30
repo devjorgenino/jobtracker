@@ -103,3 +103,18 @@ body {
   backdrop-filter: blur(12px);
   border: 1px solid rgba(30, 41, 59, 0.8);
 }
+
+/* Custom Accessibility & Mobile Scroll Utilities */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Min-w-0 safety helper to prevent text overflow in flexbox */
+.min-w-0-safe {
+  min-width: 0;
+  max-width: 100%;
+}

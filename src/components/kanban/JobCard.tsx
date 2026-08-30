@@ -58,12 +58,12 @@ export const JobCard: React.FC<JobCardProps> = ({ job, onOpenDetails }) => {
       {/* Card Header: Position & Priority */}
       <div className="flex items-start justify-between gap-2" onClick={() => onOpenDetails(job)}>
         <div className="min-w-0 flex-1">
-          <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+          <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate" title={job.position}>
             {job.position}
           </h4>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 min-w-0">
             <Building2 className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
-            <span className="truncate font-medium text-slate-700 dark:text-slate-300">{job.company}</span>
+            <span className="truncate font-medium text-slate-700 dark:text-slate-300" title={job.company}>{job.company}</span>
           </div>
         </div>
 

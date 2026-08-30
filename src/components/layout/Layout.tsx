@@ -131,12 +131,13 @@ export const Layout: React.FC = () => {
       <div
         className={cn(
           'flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out',
-          sidebarCollapsed ? 'pl-20' : 'pl-64'
+          sidebarCollapsed ? 'md:pl-20' : 'md:pl-64',
+          'pl-0' // on mobile sidebar is handled or collapsed
         )}
       >
         <Navbar onOpenAddJobModal={() => setIsAddJobOpen(true)} />
 
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden min-w-0">
           <Outlet />
         </main>
       </div>

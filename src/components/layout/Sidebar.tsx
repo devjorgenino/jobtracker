@@ -68,7 +68,7 @@ export const Sidebar: React.FC = () => {
       aria-label="Navegación principal"
       className={cn(
         'bg-white/95 dark:bg-slate-950/90 backdrop-blur-md border-r border-slate-200/90 dark:border-slate-800/80 flex flex-col h-screen fixed left-0 top-0 z-30 select-none transition-all duration-300 ease-in-out',
-        sidebarCollapsed ? 'w-20' : 'w-64'
+        sidebarCollapsed ? 'w-20 -translate-x-full md:translate-x-0' : 'w-64 translate-x-0'
       )}
     >
       {/* Single Floating Toggle Button on Sidebar Border */}

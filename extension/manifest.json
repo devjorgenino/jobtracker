@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JobTracker AI - Extractor de Vacantes",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Captura en 1-clic ofertas de empleo remoto de LinkedIn, Indeed, InfoJobs, CompuTrabajo, Get on Board y sincronízalas con tu JobTracker.",
   "icons": {
     "16": "icons/icon16.png",
@@ -39,6 +39,15 @@
       "run_at": "document_idle"
     }
   ],
+  "commands": {
+    "toggle-floating-widget": {
+      "suggested_key": {
+        "default": "Alt+Shift+J",
+        "mac": "Alt+Shift+J"
+      },
+      "description": "Mostrar u ocultar el widget flotante de JobTracker"
+    }
+  },
   "permissions": [
     "activeTab",
     "scripting",

@@ -290,21 +290,21 @@ export const CVPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-slate-900 p-6 rounded-3xl border border-blue-200/80 dark:border-blue-500/20 shadow-sm dark:shadow-xl transition-colors">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
-              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-blue-200/80 dark:border-blue-500/20 shadow-sm dark:shadow-xl transition-colors" role="banner" aria-label="Gestión de CV Maestro">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400 flex-shrink-0" aria-hidden="true" />
               Gestión de CV Maestro
             </h2>
             <Badge variant="primary">Fuente de Verdad del Sistema</Badge>
           </div>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
             Sube tu currículum en formato <strong>PDF, Word (DOCX) o Texto</strong>. El sistema extraerá toda tu trayectoria, proyectos y habilidades para generar CVs adaptados con IA para cada vacante y redactar estrategias de contacto personalizadas.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 flex-shrink-0">
           <button
             onClick={handleSaveCV}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
@@ -346,56 +346,56 @@ export const CVPage: React.FC = () => {
       </div>
 
       {/* CV Status Summary Ribbon */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs overflow-hidden" role="status" aria-label="Información del candidato">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black flex-shrink-0" aria-hidden="true">
             <User className="w-5 h-5" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Candidato Activo</div>
-            <div className="text-sm font-black text-slate-900 dark:text-slate-200 truncate">
+            <div className="text-sm font-black text-slate-900 dark:text-slate-200 truncate" title={cvForm.personalInfo?.name || 'Sin Nombre'}>
               {cvForm.personalInfo?.name || 'Sin Nombre'}
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate" title={cvForm.personalInfo?.roleTitle || 'Sin Título'}>
               {cvForm.personalInfo?.roleTitle || 'Sin Título'}
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black">
+        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs overflow-hidden" role="status" aria-label="Experiencia laboral">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black flex-shrink-0" aria-hidden="true">
             <Briefcase className="w-5 h-5" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Experiencias</div>
-            <div className="text-sm font-black text-slate-900 dark:text-slate-200">
+            <div className="text-sm font-black text-slate-900 dark:text-slate-200 truncate">
               {cvForm.workExperience?.length || 0} Puestos registrados
             </div>
-            <div className="text-[11px] text-emerald-600 dark:text-emerald-400">
+            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 truncate">
               {cvForm.workExperience?.some((e) => e.current) ? '• Actualmente empleado' : '• Disponible'}
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 font-black">
+        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs overflow-hidden" role="status" aria-label="Habilidades técnicas">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 font-black flex-shrink-0" aria-hidden="true">
             <Wrench className="w-5 h-5" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Habilidades Totales</div>
-            <div className="text-sm font-black text-slate-900 dark:text-slate-200">
+            <div className="text-sm font-black text-slate-900 dark:text-slate-200 truncate">
               {cvForm.skillCategories?.reduce((acc, cat) => acc + (cat.skills?.length || 0), 0) || 0} Habilidades
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
               {cvForm.skillCategories?.length || 0} Categorías
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
-          <div>
+        <div className="bg-white dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs overflow-hidden" role="status" aria-label="Puntuación ATS">
+          <div className="min-w-0 flex-1">
             <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Score ATS Base</div>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
+            <div className="flex items-baseline gap-1.5 mt-0.5 flex-wrap">
               <span className="text-xl font-black text-blue-600 dark:text-blue-400">{atsAnalysis.overallScore}%</span>
               <Badge variant={atsAnalysis.overallScore >= 80 ? 'success' : 'warning'}>
                 Grado {atsAnalysis.grade}
@@ -403,14 +403,14 @@ export const CVPage: React.FC = () => {
             </div>
             <div className="text-[10px] text-slate-400">Calidad estructural base</div>
           </div>
-          <div className="w-10 h-10 rounded-full border-2 border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-600 dark:text-blue-400">
+          <div className="w-10 h-10 rounded-full border-2 border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-600 dark:text-blue-400 flex-shrink-0" aria-hidden="true">
             ATS
           </div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-200 dark:border-slate-800 scrollbar-none">
+      <nav className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-2 border-b border-slate-200 dark:border-slate-800 scrollbar-none -mx-1 px-1" role="tablist" aria-label="Secciones del CV">
         <button
           onClick={() => setActiveTab('upload')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -506,7 +506,7 @@ export const CVPage: React.FC = () => {
           <FileCode className="w-4 h-4" />
           Texto Extraído
         </button>
-      </div>
+      </nav>
 
       {/* TAB 1: UPLOAD & EXTRACTION */}
       {activeTab === 'upload' && (

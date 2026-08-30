@@ -12,6 +12,7 @@ import {
   RefreshCw,
   FileJson,
   CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -198,6 +199,48 @@ export const ExtensionPage: React.FC = () => {
           <span className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${isExtensionDetected ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
             {isExtensionDetected ? 'Conectado' : 'Instalación Manual'}
           </span>
+        </div>
+      </div>
+
+      {/* Smart Non-Intrusive Privacy & Control Info */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            Experiencia Inteligente y No Intrusiva (Control Total)
+          </h3>
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+            Privacidad Primero
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-2">
+            <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span>🎯</span> Solo en Portales de Empleo
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+              El botón flotante <b>no invade tu navegación</b> en sitios cotidianos (Google, YouTube, etc.). Solo se muestra automáticamente en portales de empleo reconocidos y vacantes estructuradas.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-2">
+            <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span>⚡</span> Activación Manual Bajo Demanda
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+              ¿Viendo una vacante en un blog o web externa? Puedes mostrar el widget al instante desde el <b>Popup</b>, con <b>Clic Derecho</b> o con el atajo <code className="bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded text-[10px]">Alt+Shift+J</code>.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-2">
+            <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span>⚙️</span> Personalizable a tu Gusto
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+              Elige en el Popup entre: <i>Solo en portales de empleo</i> (recomendado), <i>Solo manual</i> o <i>Siempre activo</i>. Además, incluye botón <code className="bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded text-[10px]">×</code> para descartar en cualquier pestaña.
+            </p>
+          </div>
         </div>
       </div>
 

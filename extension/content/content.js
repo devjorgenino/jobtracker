@@ -1,7 +1,7 @@
 /**
  * JobTracker Content Script Coordinator
- * Injects on job pages, provides 1-click floating quick save, and communicates with extension popup/background.
- * Also provides a bi-directional bridge when loaded on the JobTracker web app.
+ * Injects floating quick save button ONLY on detected job portals/vacancies, or when explicitly requested by user.
+ * Communicates with extension popup/background and provides bi-directional bridge on JobTracker web app.
  */
 
 (function() {
@@ -60,8 +60,8 @@
     return;
   }
 
-  // 2. Job Portals Scrapers & Floating Button Injection
-  const scrapers = [
+  // 2. Job Portals Scrapers
+  const specificScrapers = [
     window.JobTrackerLinkedInScraper,
     window.JobTrackerIndeedScraper,
     window.JobTrackerInfoJobsScraper,
@@ -69,21 +69,76 @@
     window.JobTrackerGetOnBrdScraper,
     window.JobTrackerGlassdoorScraper,
     window.JobTrackerTorreScraper,
-    window.JobTrackerWWRScraper,
-    window.JobTrackerGenericScraper // Fallback
+    window.JobTrackerWWRScraper
   ];
 
-  function getActiveScraper() {
-    for (const scraper of scrapers) {
-      if (scraper && typeof scraper.detect === 'function' && scraper.detect()) {
-        return scraper;
+  // Current user configuration for floating widget
+  // 'job_portals_only' (Default): Only show on detected job sites/vacancies
+  // 'manual': Never show automatically; only when activated from popup or context menu
+  // 'always': Show on all web pages
+  let currentWidgetMode = 'job_portals_only';
+
+  // Load user preference from storage
+  chrome.storage.local.get(['floatingWidgetMode'], (result) => {
+    if (result && result.floatingWidgetMode) {
+      currentWidgetMode = result.floatingWidgetMode;
+    }
+    evaluateFloatingButton();
+  });
+
+  // Listen for storage changes from popup
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.floatingWidgetMode) {
+      currentWidgetMode = changes.floatingWidgetMode.newValue || 'job_portals_only';
+      evaluateFloatingButton();
+    }
+  });
+
+  /**
+   * Returns the scraper specifically detecting this site/page as a job portal/offer,
+   * or null if this page is not recognized as a job posting.
+   */
+  function getDetectedScraper() {
+    for (const scraper of specificScrapers) {
+      if (scraper && typeof scraper.detect === 'function') {
+        try {
+          if (scraper.detect()) return scraper;
+        } catch (e) {
+          console.warn('[JobTracker] Scraper detect error:', scraper.name, e);
+        }
       }
     }
-    return window.JobTrackerGenericScraper;
+    if (window.JobTrackerGenericScraper && typeof window.JobTrackerGenericScraper.detect === 'function') {
+      try {
+        if (window.JobTrackerGenericScraper.detect()) {
+          return window.JobTrackerGenericScraper;
+        }
+      } catch (e) {
+        console.warn('[JobTracker] Generic detect error:', e);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Check if current page is a verified job portal or job posting
+   */
+  function isJobPage() {
+    return getDetectedScraper() !== null;
+  }
+
+  /**
+   * Get active scraper for extraction.
+   * If allowFallback is true and no specific portal detected, returns generic scraper.
+   */
+  function getActiveScraper(allowFallback = true) {
+    const detected = getDetectedScraper();
+    if (detected) return detected;
+    return allowFallback ? window.JobTrackerGenericScraper : null;
   }
 
   function extractCurrentJob() {
-    const scraper = getActiveScraper();
+    const scraper = getActiveScraper(true);
     try {
       const data = scraper ? scraper.scrape() : {};
       return {
@@ -96,7 +151,7 @@
         salary: data.salary || '',
         description: data.description || '',
         techStack: Array.isArray(data.techStack) ? data.techStack.join(', ') : (data.techStack || ''),
-        portal: data.portal || (scraper ? scraper.name : 'Web'),
+        portal: data.portal || (scraper ? scraper.name : 'Web Externa'),
         contactName: data.recruiterName || '',
         contactEmail: '',
         contactProfile: data.recruiterProfile || '',
@@ -104,7 +159,7 @@
         priority: 'medium',
         createdAt: new Date().toISOString(),
         lastUpdate: new Date().toISOString(),
-        notes: `Extraído automáticamente por la extensión desde ${data.portal || (scraper ? scraper.name : 'Web')}.`
+        notes: `Extraído por la extensión desde ${data.portal || (scraper ? scraper.name : 'Web')}.`
       };
     } catch (e) {
       console.error('[JobTracker] Error extracting job:', e);
@@ -112,20 +167,25 @@
     }
   }
 
+  // Remove existing floating widget
+  function removeFloatingButton() {
+    const existing = document.getElementById('jobtracker-floating-btn');
+    if (existing) {
+      existing.classList.add('jobtracker-fade-out');
+      setTimeout(() => existing.remove(), 250);
+    }
+  }
+
   // Floating Quick Action Button
   function injectFloatingButton() {
     if (document.getElementById('jobtracker-floating-btn')) return;
-    
-    // Only inject on likely job pages or supported domains
-    const scraper = getActiveScraper();
-    if (!scraper) return;
 
     const container = document.createElement('div');
     container.id = 'jobtracker-floating-btn';
-    container.className = 'jobtracker-float-container';
+    container.className = 'jobtracker-float-container jobtracker-fade-in';
     
     container.innerHTML = `
-      <div class="jobtracker-badge" title="Guardar esta vacante en JobTracker">
+      <div class="jobtracker-badge" id="jobtracker-badge-action" title="Guardar esta vacante en JobTracker">
         <div class="jobtracker-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
@@ -134,9 +194,17 @@
         </div>
         <span class="jobtracker-text">Guardar en JobTracker</span>
       </div>
+      <button type="button" class="jobtracker-close-btn" id="jobtracker-btn-dismiss" title="Ocultar widget en esta pestaña" aria-label="Cerrar widget">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     `;
 
-    container.addEventListener('click', async (e) => {
+    // Click on main badge action
+    const badgeAction = container.querySelector('#jobtracker-badge-action');
+    badgeAction.addEventListener('click', async (e) => {
       e.stopPropagation();
       const job = extractCurrentJob();
       if (!job || !job.position) {
@@ -157,7 +225,56 @@
       });
     });
 
+    // Click on dismiss button
+    const dismissBtn = container.querySelector('#jobtracker-btn-dismiss');
+    dismissBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      sessionStorage.setItem('jobtracker_widget_dismissed', 'true');
+      removeFloatingButton();
+    });
+
     document.body.appendChild(container);
+  }
+
+  /**
+   * Decides whether to show, hide or inject the floating widget based on:
+   * 1. Mode: 'job_portals_only' (default), 'manual', 'always'
+   * 2. Page detection: Is it a job portal or job posting?
+   * 3. Session state: Has user dismissed it in this tab?
+   */
+  function evaluateFloatingButton(force = false) {
+    if (isJobTrackerApp) return;
+
+    if (force) {
+      sessionStorage.removeItem('jobtracker_widget_dismissed');
+      injectFloatingButton();
+      return;
+    }
+
+    // If user explicitly dismissed it in this session, don't show automatically
+    if (sessionStorage.getItem('jobtracker_widget_dismissed') === 'true') {
+      removeFloatingButton();
+      return;
+    }
+
+    if (currentWidgetMode === 'manual') {
+      // Never auto-inject in manual mode
+      removeFloatingButton();
+      return;
+    }
+
+    if (currentWidgetMode === 'always') {
+      injectFloatingButton();
+      return;
+    }
+
+    // Default mode: 'job_portals_only'
+    if (isJobPage()) {
+      injectFloatingButton();
+    } else {
+      removeFloatingButton();
+    }
   }
 
   // Toast Notification
@@ -185,7 +302,45 @@
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'GET_JOB_DATA') {
       const job = extractCurrentJob();
-      sendResponse({ success: !!job, job: job, scraper: getActiveScraper() ? getActiveScraper().name : 'Generic' });
+      const detected = getDetectedScraper();
+      sendResponse({ 
+        success: !!job, 
+        job: job, 
+        scraper: detected ? detected.name : (job?.portal || 'Genérico'),
+        isJobSite: isJobPage()
+      });
+    } else if (request.action === 'CHECK_PAGE_STATUS') {
+      const detected = getDetectedScraper();
+      sendResponse({
+        isJobSite: isJobPage(),
+        portalName: detected ? detected.name : 'Web Externa',
+        mode: currentWidgetMode,
+        isDismissed: sessionStorage.getItem('jobtracker_widget_dismissed') === 'true',
+        isWidgetVisible: !!document.getElementById('jobtracker-floating-btn')
+      });
+    } else if (request.action === 'SHOW_FLOATING_WIDGET') {
+      evaluateFloatingButton(true);
+      showToast('⚡ Widget de JobTracker activado en esta página', 'info');
+      sendResponse({ success: true });
+    } else if (request.action === 'HIDE_FLOATING_WIDGET') {
+      sessionStorage.setItem('jobtracker_widget_dismissed', 'true');
+      removeFloatingButton();
+      sendResponse({ success: true });
+    } else if (request.action === 'TOGGLE_FLOATING_WIDGET') {
+      const isVisible = !!document.getElementById('jobtracker-floating-btn');
+      if (isVisible) {
+        sessionStorage.setItem('jobtracker_widget_dismissed', 'true');
+        removeFloatingButton();
+        showToast('Widget de JobTracker ocultado', 'info');
+      } else {
+        evaluateFloatingButton(true);
+        showToast('⚡ Widget de JobTracker activado en esta página', 'info');
+      }
+      sendResponse({ success: true, isVisible: !isVisible });
+    } else if (request.action === 'SET_WIDGET_MODE') {
+      currentWidgetMode = request.mode || 'job_portals_only';
+      evaluateFloatingButton();
+      sendResponse({ success: true, mode: currentWidgetMode });
     } else if (request.action === 'SHOW_TOAST') {
       showToast(request.message, request.type || 'success');
       sendResponse({ success: true });
@@ -193,18 +348,22 @@
     return true;
   });
 
-  // Check if current page is a job page and inject floating button
+  // Initial evaluation after DOM is ready
   setTimeout(() => {
-    injectFloatingButton();
-  }, 1200);
+    evaluateFloatingButton();
+  }, 1000);
 
-  // Re-check on URL changes (SPA navigation on LinkedIn/Indeed)
+  // Re-check on URL changes (SPA navigation on LinkedIn/Indeed/ATS)
   let lastUrl = location.href;
+  let debounceTimeout = null;
   new MutationObserver(() => {
     const currentUrl = location.href;
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
-      setTimeout(injectFloatingButton, 1000);
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        evaluateFloatingButton();
+      }, 1000);
     }
   }).observe(document, { subtree: true, childList: true });
 

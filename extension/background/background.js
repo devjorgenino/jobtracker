@@ -5,14 +5,43 @@
 
 const APP_DEFAULT_URL = 'http://localhost:5173';
 
-// Initialize context menu and storage
+// Initialize context menu and default configuration
 chrome.runtime.onInstalled.addListener(() => {
+  // 1. Context menu for text selection
   chrome.contextMenus.create({
     id: 'jobtracker-save-selection',
     title: 'Guardar selección como vacante en JobTracker AI',
     contexts: ['selection']
   });
-  console.log('✅ [JobTracker Background] Extensión inicializada correctamente.');
+
+  // 2. Context menu to toggle/show floating widget on any page
+  chrome.contextMenus.create({
+    id: 'jobtracker-toggle-widget',
+    title: '⚡ Mostrar / Ocultar widget de JobTracker en esta página',
+    contexts: ['page', 'frame']
+  });
+
+  // 3. Ensure default floatingWidgetMode is set to 'job_portals_only'
+  chrome.storage.local.get(['floatingWidgetMode'], (res) => {
+    if (!res.floatingWidgetMode) {
+      chrome.storage.local.set({ floatingWidgetMode: 'job_portals_only' });
+    }
+  });
+
+  console.log('✅ [JobTracker Background] Extensión inicializada correctamente con modo inteligente por defecto.');
+});
+
+// Handle Keyboard Shortcut Commands
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'toggle-floating-widget') {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (tab && tab.id) {
+        chrome.tabs.sendMessage(tab.id, { action: 'TOGGLE_FLOATING_WIDGET' }, () => {
+          if (chrome.runtime.lastError) {}
+        });
+      }
+    });
+  }
 });
 
 // Handle Context Menu clicks
@@ -35,6 +64,33 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       notes: 'Guardado desde menú contextual del navegador.'
     };
     saveAndBroadcastJob(job);
+  } else if (info.menuItemId === 'jobtracker-toggle-widget') {
+    if (tab && tab.id) {
+      chrome.tabs.sendMessage(tab.id, { action: 'TOGGLE_FLOATING_WIDGET' }, (res) => {
+        if (chrome.runtime.lastError) {
+          // If script not injected yet, inject dynamically
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: [
+              'content/scrapers/generic.js',
+              'content/scrapers/linkedin.js',
+              'content/scrapers/indeed.js',
+              'content/scrapers/infojobs.js',
+              'content/scrapers/computrabajo.js',
+              'content/scrapers/getonbrd.js',
+              'content/scrapers/glassdoor.js',
+              'content/scrapers/torre.js',
+              'content/scrapers/weworkremotely.js',
+              'content/content.js'
+            ]
+          }).then(() => {
+            setTimeout(() => {
+              chrome.tabs.sendMessage(tab.id, { action: 'SHOW_FLOATING_WIDGET' });
+            }, 250);
+          }).catch((e) => console.log('Could not inject content scripts:', e));
+        }
+      });
+    }
   }
 });
 
