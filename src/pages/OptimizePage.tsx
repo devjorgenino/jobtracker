@@ -1,565 +1,460 @@
-import { useState } from 'react';
-import { Sparkles, Copy, Save, FileText, ChevronDown, ChevronUp, X, Download, Eye } from 'lucide-react';
-import { pdf } from '@react-pdf/renderer';
-import { useAppStore } from '@/context/store';
-import { useToast } from '@/components/common/Toast';
-import { qwenService } from '@/services/qwen';
-import { getOptimizedPdfBlob } from '@/services/pdfFromTemplate';
-import { Button, Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/common';
-import { ATSScore } from '@/components/common/ATSScore';
-import { analyzeATS } from '@/utils/atsAnalyzer';
-import type { ATSAnalysis } from '@/utils/atsAnalyzer';
-import { cn } from '@/utils/cn';
-import { CVPDF } from '@/components/cv/CVPDF';
-import * as Dialog from '@radix-ui/react-dialog';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useStore } from '../context/store';
+import { CVTailorService } from '../services/hr/cvTailorService';
+import { ATSService } from '../services/hr/atsService';
+import { ATSPDFService } from '../services/pdf/atsPdfGenerator';
+import { CVTranslationService } from '../services/cv/cvTranslationService';
+import { ATSScore } from '../components/common/ATSScore';
+import { Badge } from '../components/common/Badge';
+import type { Lang } from '../i18n';
+import {
+  Sparkles,
+  Download,
+  Copy,
+  Check,
+  Send,
+  FileText,
+  RefreshCw,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import type { Job } from '../types/job';
 
-interface ParsedCV {
-  name: string;
-  title: string;
-  contact: string[];
-  summary: string;
-  experience: Array<{ company: string; position: string; date: string; description: string }>;
-  education: Array<{ school: string; degree: string; date: string }>;
-  skills: string[];
-}
+export const OptimizePage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const queryJobId = searchParams.get('jobId');
 
-function parseCVContent(content: string): ParsedCV {
-  const result: ParsedCV = {
-    name: '', title: '', contact: [], summary: '', experience: [], education: [], skills: [],
-  };
-  if (!content?.trim()) return result;
+  const {
+    jobs,
+    masterCV,
+    tailoredCvs,
+    setTailoredCV,
+    updateJob,
+    aiConfig,
+  } = useStore();
 
-  const lines = content.split('\n');
-  let currentSection = '';
-  let currentIndex = -1;
+  const [selectedJobId, setSelectedJobId] = useState<string>(queryJobId || jobs[0]?.id || '');
+  const [selectedLang, setSelectedLang] = useState<Lang>('es');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [customJobText, setCustomJobText] = useState('');
+  const [useCustomJob, setUseCustomJob] = useState(false);
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    const lower = trimmed.toLowerCase();
-
-    if (lower.startsWith('# ')) {
-      result.name = trimmed.replace(/^#\s*/, '').trim();
-      continue;
+  useEffect(() => {
+    if (queryJobId) {
+      setSelectedJobId(queryJobId);
+    } else if (!selectedJobId && jobs.length > 0) {
+      setSelectedJobId(jobs[0].id);
     }
-    if (lower.startsWith('## ')) {
-      currentSection = lower.replace(/^##\s*/, '');
-      currentIndex = -1;
-      continue;
-    }
-    if (lower.includes('email') || lower.includes('telefono') || lower.includes('linkedin') || lower.includes('github') || lower.includes('ubicacion') || lower.includes('www.')) {
-      result.contact.push(trimmed);
-      continue;
-    }
-    if (currentSection.includes('experiencia') || currentSection.includes('trabajo')) {
-      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        const text = trimmed.replace(/^[-*]\s*/, '');
-        const dateMatch = text.match(/(\d{4}.*\d{4}|\d{4}.*actual)/i);
-        let date = '', cleanText = text;
-        if (dateMatch) { date = dateMatch[0]; cleanText = text.replace(date, '').trim(); }
-        if (cleanText.includes('|')) {
-          const parts = cleanText.split('|').map(p => p.trim());
-          result.experience.push({ company: parts[0] || '', position: parts[1] || '', date: date || parts[2] || '', description: '' });
-        } else {
-          result.experience.push({ company: cleanText, position: '', date, description: '' });
-        }
-        currentIndex = result.experience.length - 1;
-      } else if (currentIndex >= 0 && trimmed.length > 10) {
-        result.experience[currentIndex].description += trimmed + ' ';
-      }
-    }
-    if (currentSection.includes('skill') || currentSection.includes('habilidad')) {
-      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        const skill = trimmed.replace(/^[-*]\s*/, '').trim();
-        if (skill && skill.length < 60) result.skills.push(skill);
-      }
-    }
-    if (currentSection.includes('educ') || currentSection.includes('estudio')) {
-      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        const text = trimmed.replace(/^[-*]\s*/, '');
-        const dateMatch = text.match(/(\d{4}.*\d{4}|\d{4}.*actual)/i);
-        let date = '', cleanText = text;
-        if (dateMatch) { date = dateMatch[0]; cleanText = text.replace(date, '').trim(); }
-        if (cleanText.includes('|')) {
-          const parts = cleanText.split('|').map(p => p.trim());
-          result.education.push({ school: parts[0] || '', degree: parts[1] || '', date: date || parts[2] || '' });
-        } else {
-          result.education.push({ school: cleanText, degree: '', date });
-        }
-      }
-    }
-    if (currentSection.includes('perfil') || currentSection.includes('summary')) {
-      result.summary += trimmed + ' ';
-    }
-  }
-  result.summary = result.summary.trim();
-  return result;
-}
+  }, [queryJobId, jobs]);
 
-function CVPreview({ content }: { content: string }) {
-  const cv = parseCVContent(content);
-  const hasData = cv.name || cv.experience.length > 0 || cv.skills.length > 0;
+  const activeJob = jobs.find((j) => j.id === selectedJobId) || null;
+  const currentTailoredCv = selectedJobId ? tailoredCvs[selectedJobId] : null;
 
-  if (!hasData) {
-    return <pre className="whitespace-pre-wrap text-sm bg-surface p-4 rounded-md overflow-auto font-mono">{content}</pre>;
-  }
+  // Compute live ATS score for display
+  const currentAtsScore = currentTailoredCv && activeJob
+    ? ATSService.analyze(currentTailoredCv, activeJob)
+    : activeJob
+    ? ATSService.analyze(masterCV, activeJob)
+    : null;
 
-  return (
-    <div className="bg-white p-4 rounded-md border border-border h-[450px] overflow-auto">
-      <div className="border-b-2 border-primary/20 pb-3 mb-3">
-        <h3 className="text-lg font-bold text-primary uppercase tracking-wide">{cv.name || 'Nombre'}</h3>
-        {cv.title && <p className="text-sm text-accent font-medium">{cv.title}</p>}
-        {cv.contact.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2 text-xs text-text-muted">
-            {cv.contact.map((c, i) => <span key={i}>{c}</span>)}
-          </div>
-        )}
-      </div>
-      {cv.summary && (
-        <div className="mb-3">
-          <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-1">Perfil</h4>
-          <p className="text-sm text-text-muted">{cv.summary}</p>
-        </div>
-      )}
-      {cv.experience.length > 0 && (
-        <div className="mb-3">
-          <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-2 pb-1 border-b border-border">Experiencia</h4>
-          {cv.experience.map((exp, i) => (
-            <div key={i} className="mb-2">
-              <div className="flex justify-between items-start">
-                <span className="font-semibold text-sm text-primary">{exp.company}</span>
-                <span className="text-xs text-text-muted italic">{exp.date}</span>
-              </div>
-              {exp.position && <p className="text-xs text-accent">{exp.position}</p>}
-              {exp.description && <p className="text-xs text-text-muted mt-1">{exp.description.trim()}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-      {cv.education.length > 0 && (
-        <div className="mb-3">
-          <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-2 pb-1 border-b border-border">Educación</h4>
-          {cv.education.map((edu, i) => (
-            <div key={i} className="mb-1 flex justify-between">
-              <div>
-                <span className="font-semibold text-sm text-primary">{edu.school}</span>
-                {edu.degree && <p className="text-xs text-text-muted">{edu.degree}</p>}
-              </div>
-              <span className="text-xs text-text-muted italic">{edu.date}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {cv.skills.length > 0 && (
-        <div>
-          <h4 className="text-xs font-bold text-primary uppercase tracking-wide mb-2 pb-1 border-b border-border">Habilidades</h4>
-          <div className="flex flex-wrap gap-1">
-            {cv.skills.map((skill, i) => (
-              <span key={i} className="text-xs bg-surface px-2 py-1 rounded text-text-muted">{skill}</span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+  const handleGenerateCV = async () => {
+    let targetJob: Job;
 
-function OptimizedCVPreview({ content }: { content: string }) {
-  if (!content) {
-    return (
-      <div
-        className="bg-surface rounded-lg p-4 min-h-[280px] flex items-center justify-center"
-        aria-live="polite"
-      >
-        <p className="text-text-muted text-sm">El CV optimizado aparecerá aquí</p>
-      </div>
-    );
-  }
-
-  return (
-    <section
-      className="bg-white rounded-lg border border-border min-h-[280px] max-h-[500px] overflow-auto"
-      aria-label="Texto del CV optimizado"
-    >
-      <pre
-        className="whitespace-pre-wrap text-sm p-4 font-mono text-primary leading-relaxed"
-        style={{ fontFamily: 'ui-monospace, monospace' }}
-      >
-        {content}
-      </pre>
-    </section>
-  );
-}
-
-export default function OptimizePage() {
-  const { cvs, addCV, setActiveCv } = useAppStore();
-  const { addToast } = useToast();
-  
-  const [selectedCvId, setSelectedCvId] = useState<string | null>(null);
-  const selectedCV = cvs.find(cv => cv.id === selectedCvId);
-  
-  const [jobDescription, setJobDescription] = useState('');
-  const [optimizedCV, setOptimizedCV] = useState('');
-  const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysis | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showCVSelector, setShowCVSelector] = useState(false);
-  
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [loadingPdf, setLoadingPdf] = useState(false);
-
-  const generatePdfPreview = async () => {
-    if (!optimizedCV) return;
-    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    setPdfUrl(null);
-    setShowPdfPreview(true);
-    setLoadingPdf(true);
-    try {
-      // Primero intentar con la plantilla public/formato.pdf (si existe y es válida)
-      const templateBlob = await getOptimizedPdfBlob(optimizedCV);
-      const blob =
-        templateBlob ?? (await pdf(<CVPDF content={optimizedCV} />).toBlob());
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      addToast('error', 'No se pudo generar la vista previa del PDF');
-    } finally {
-      setLoadingPdf(false);
-    }
-  };
-
-  const downloadPdf = async () => {
-    if (!optimizedCV) return;
-    try {
-      const templateBlob = await getOptimizedPdfBlob(optimizedCV);
-      const blob =
-        templateBlob ?? (await pdf(<CVPDF content={optimizedCV} />).toBlob());
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'CV-Optimizado.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
-    }
-  };
-
-  const handleSelectCV = (cvId: string) => {
-    setSelectedCvId(cvId);
-    setActiveCv(cvId);
-    setShowCVSelector(false);
-  };
-
-  const handleClearSelection = () => {
-    setSelectedCvId(null);
-    setActiveCv(null);
-    setJobDescription('');
-    setOptimizedCV('');
-    setShowCVSelector(false);
-    setAtsAnalysis(null);
-  };
-
-  const handleOptimize = async () => {
-    if (!selectedCV?.content || !jobDescription) return;
-    setIsLoading(true);
-    setError(null);
-    const result = await qwenService.optimizeCV({ cvContent: selectedCV.content, jobDescription });
-    setIsLoading(false);
-    if (result.error) {
-      setError(result.error);
+    if (useCustomJob && customJobText.trim()) {
+      targetJob = {
+        id: 'job_custom_' + Date.now(),
+        position: 'Vacante Personalizada',
+        company: 'Empresa Objetivo',
+        url: '',
+        location: 'Remoto',
+        workMode: 'Remoto',
+        salary: '',
+        description: customJobText,
+        requirements: '',
+        techStack: [],
+        portal: 'Directo',
+        status: 'wishlist',
+        priority: 'medium',
+        createdAt: new Date().toISOString(),
+        lastUpdate: new Date().toISOString(),
+      };
+    } else if (activeJob) {
+      targetJob = activeJob;
     } else {
-      setOptimizedCV(result.content);
-      // Analyze ATS score
-      const analysis = analyzeATS(result.content, jobDescription);
-      setAtsAnalysis(analysis);
+      toast.error('Por favor selecciona una vacante o ingresa una descripción.');
+      return;
     }
-  };
 
-  const handleCopyToClipboard = async () => {
-    if (!optimizedCV) return;
+    setIsGenerating(true);
+    toast.info(`Analizando vacante e inyectando palabras clave (${selectedLang.toUpperCase()})...`, { duration: 3000 });
+
     try {
-      await navigator.clipboard.writeText(optimizedCV);
-      addToast('success', 'CV copiado al portapapeles');
-    } catch (err) {
-      addToast('error', 'Error al copiar');
+      const tailored = await CVTailorService.generateTailoredCV(targetJob, masterCV, aiConfig, selectedLang);
+      
+      // Calculate ATS score
+      const atsAnalysis = ATSService.analyze(tailored, targetJob);
+      tailored.atsScore = atsAnalysis.overallScore;
+      tailored.atsMatchScore = atsAnalysis.overallScore;
+      tailored.targetKeywordsMatched = atsAnalysis.matchedKeywords;
+      tailored.targetKeywordsMissing = atsAnalysis.missingKeywords;
+
+      setTailoredCV(targetJob.id, tailored);
+
+      if (activeJob) {
+        updateJob(activeJob.id, {
+          atsScore: atsAnalysis,
+          tailoredCvId: tailored.id,
+        });
+      }
+
+      toast.success(`🎉 ¡CV adaptado (${selectedLang.toUpperCase()}) con éxito! ATS Score: ${atsAnalysis.overallScore}%`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Ocurrió un error al generar el CV. Revisa tu conexión y configuración de OmniRoute en Ajustes.');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const handleSaveCV = () => {
-    if (!optimizedCV) return;
-    const newCV = {
-      id: crypto.randomUUID(),
-      name: `${selectedCV?.name || 'CV'} - Optimizado`,
-      content: optimizedCV,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    addCV(newCV);
-    addToast('success', 'CV guardado correctamente');
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success('Copiado al portapapeles');
+    setTimeout(() => setCopiedKey(null), 2000);
   };
+
+  const handleDownloadPDF = async (lang: 'es' | 'en' = selectedLang) => {
+    const rawCv = currentTailoredCv || masterCV;
+    setIsGeneratingPdf(true);
+    toast.info(`Generando PDF ATS (${lang.toUpperCase()})...`);
+    try {
+      const cvToDownload = await CVTranslationService.translateCV(rawCv, lang, aiConfig);
+      const filename = activeJob
+        ? `CV_${activeJob.company.replace(/\s+/g, '_')}_${activeJob.position.replace(/\s+/g, '_')}_${lang.toUpperCase()}_ATS.pdf`
+        : `CV_${(masterCV.personalInfo?.name || 'Jorge_Nino').replace(/\s+/g, '_')}_${lang.toUpperCase()}_ATS.pdf`;
+
+      await ATSPDFService.downloadPDF(cvToDownload, lang, filename);
+      toast.success(`📥 PDF (${lang.toUpperCase()}) descargado exitosamente.`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al generar PDF');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const activeJobTechs: string[] = activeJob
+    ? Array.isArray(activeJob.techStack)
+      ? activeJob.techStack
+      : typeof activeJob.techStack === 'string'
+      ? (activeJob.techStack as string).split(',').map((s) => s.trim()).filter(Boolean)
+      : []
+    : [];
 
   return (
-    <div className="h-screen p-4 md:p-6 overflow-auto">
-      <div className="h-full flex flex-col">
-        <div className="mb-4 md:mb-6 flex-shrink-0">
-          <h1 className="text-xl md:text-2xl font-bold text-primary flex items-center gap-2">
-            <Sparkles className="w-5 md:w-6 h-5 md:h-6 text-accent" />
-            Optimizador de CV con IA
-          </h1>
-          <p className="text-sm md:text-base text-text-muted mt-1">Mejora tu CV para pasar los filtros ATS</p>
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-950/40 via-indigo-950/40 to-slate-900 p-6 rounded-3xl border border-blue-500/20 shadow-xl">
+        <div>
+          <h2 className="text-xl font-black text-slate-100 flex items-center gap-2.5">
+            <Sparkles className="w-6 h-6 text-blue-400" />
+            Estudio de Optimización de CV & Filtros ATS
+          </h2>
+          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+            Genera currículums hiper-adaptados a partir de tu CV maestro, maximizando la densidad de palabras clave y garantizando compatibilidad 100% con sistemas ATS (Taleo, Greenhouse, Lever, Workday).
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 flex-1 min-h-0">
-          {/* Columna Izquierda */}
-          <div className="space-y-4 md:space-y-6">
-            {/* Selector de CV */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    CV a optimizar
-                  </CardTitle>
-                  <div className="flex gap-1">
-                    {selectedCV && (
-                      <Button variant="ghost" size="sm" onClick={handleClearSelection} className="text-xs text-error hover:text-error">
-                        <X className="w-3 h-3" />
-                        Limpiar
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={() => setShowCVSelector(!showCVSelector)} className="text-xs">
-                      {showCVSelector ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      {selectedCV ? 'Cambiar' : 'Seleccionar'}
-                    </Button>
+        {/* Job Selector Dropdown & Lang Selector */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="w-64">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              Vacante a Optimizar
+            </label>
+            <select
+              value={useCustomJob ? 'custom' : selectedJobId}
+              onChange={(e) => {
+                if (e.target.value === 'custom') {
+                  setUseCustomJob(true);
+                } else {
+                  setUseCustomJob(false);
+                  setSelectedJobId(e.target.value);
+                }
+              }}
+              className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-semibold text-slate-100 focus:outline-none focus:border-blue-500"
+            >
+              {jobs.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.company} — {j.position}
+                </option>
+              ))}
+              <option value="custom">✍️ Ingresar otra descripción...</option>
+            </select>
+          </div>
+
+          {/* Language Selector */}
+          <div className="pt-4">
+            <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700/80 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSelectedLang('es')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedLang === 'es'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Generar e interpretar en Español"
+              >
+                🇪🇸 ES
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedLang('en')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedLang === 'en'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Generate & parse in English"
+              >
+                🇺🇸 EN
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <button
+              onClick={handleGenerateCV}
+              disabled={isGenerating}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isGenerating ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Optimizando ({selectedLang.toUpperCase()})...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  {currentTailoredCv ? `Regenerar CV (${selectedLang.toUpperCase()})` : `Generar CV (${selectedLang.toUpperCase()})`}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Master CV Reference Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-black text-sm">
+            CV
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-200">
+                Fuente Única de Verdad: <strong className="text-indigo-400">{masterCV.personalInfo?.name || 'CV Maestro'}</strong>
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                {masterCV.personalInfo?.roleTitle || 'Perfil Profesional'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {masterCV.workExperience?.length || 0} Experiencias laborales • {masterCV.skillCategories?.reduce((acc, c) => acc + (c.skills?.length || 0), 0) || 0} Habilidades registradas • {masterCV.education?.length || 0} Títulos
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('/cv')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+        >
+          <FileText className="w-3.5 h-3.5 text-indigo-400" />
+          Subir / Editar CV Maestro
+        </button>
+      </div>
+
+      {/* Main Split Screen */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Job Details & Keywords Radar (5 cols) */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Target Job Card */}
+          {activeJob && !useCustomJob && (
+            <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-lg">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-100">{activeJob.position}</h3>
+                  <p className="text-xs text-indigo-400 font-semibold">{activeJob.company}</p>
+                </div>
+                <Badge variant="primary">{activeJob.workMode}</Badge>
+              </div>
+
+              {/* Tech Stack */}
+              {activeJobTechs.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                    Stack Clave de la Vacante
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeJobTechs.map((tech: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] px-2 py-0.5 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-mono"
+                      >
+                        {tech}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              </CardHeader>
-              {showCVSelector ? (
-                <CardContent className="pt-0 space-y-2">
-                  {cvs.length > 0 ? (
-                    cvs.map((cv) => (
-                      <button
-                        key={cv.id}
-                        onClick={() => handleSelectCV(cv.id)}
-                        className={cn(
-                          'w-full p-2 rounded-lg border text-left transition-all text-sm',
-                          selectedCvId === cv.id ? 'border-accent bg-accent/10' : 'border-border hover:border-accent/50'
-                        )}
-                      >
-                        <span className="font-medium">{cv.name}</span>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-sm text-text-muted">No hay CVs cargados</p>
-                  )}
-                </CardContent>
-              ) : selectedCV ? (
-                <CardContent className="pt-0">
-                  <div className="bg-accent/5 border border-accent/20 rounded-lg p-3">
-                    <p className="font-medium text-sm">{selectedCV.name}</p>
-                  </div>
-                </CardContent>
-              ) : (
-                <CardContent className="pt-0">
-                  <p className="text-sm text-text-muted">Selecciona un CV para optimizar</p>
-                </CardContent>
               )}
-            </Card>
 
-            {/* Tu CV */}
-            {selectedCV && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold">Tu CV actual</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedCV.originalFileUrl ? (
-                    <iframe
-                      src={selectedCV.originalFileUrl}
-                      className="w-full h-[450px] rounded border"
-                      title="Vista previa del CV"
-                    />
+              {/* Description Preview */}
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                  Descripción & Requisitos
+                </span>
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 max-h-48 overflow-y-auto leading-relaxed whitespace-pre-wrap">
+                  {activeJob.description || 'Sin descripción detallada.'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Custom Job Input if selected */}
+          {useCustomJob && (
+            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 shadow-lg">
+              <h3 className="font-bold text-xs text-slate-100 uppercase tracking-wider">
+                Pega la Descripción de la Vacante
+              </h3>
+              <textarea
+                rows={8}
+                placeholder="Pega aquí el texto completo del empleo..."
+                value={customJobText}
+                onChange={(e) => setCustomJobText(e.target.value)}
+                className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          )}
+
+          {/* ATS Live Gauge Breakdown */}
+          {currentAtsScore && (
+            <ATSScore
+              score={currentAtsScore}
+              onOptimizeClick={handleGenerateCV}
+            />
+          )}
+        </div>
+
+        {/* Right Column: Tailored CV / Document Preview (7 cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
+            {/* Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-100">
+                    {currentTailoredCv ? 'Currículum Optimizado para ATS' : 'Vista Previa del CV Maestro'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {currentTailoredCv
+                      ? `Adaptado específicamente para ${activeJob?.company || 'la vacante'}`
+                      : 'CV base listo para ser optimizado'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() =>
+                    handleCopy(
+                      currentTailoredCv?.fullMarkdown || masterCV.personalInfo?.summary || '',
+                      'cv_text'
+                    )
+                  }
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
+                >
+                  {copiedKey === 'cv_text' ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
                   ) : (
-                    <CVPreview content={selectedCV.content} />
+                    <Copy className="w-3.5 h-3.5" />
                   )}
-                </CardContent>
-              </Card>
-            )}
+                  Copiar Texto
+                </button>
 
-            {/* Descripción del puesto */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">Descripción del puesto</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <textarea
-                  id="job-description"
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Pega aquí la descripción de la oferta de empleo..."
-                  className="w-full h-32 md:h-40 p-3 border border-border rounded-md resize-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:border-transparent text-sm"
-                  aria-label="Descripción del puesto"
-                />
-              </CardContent>
-              <CardFooter className="pt-3">
-                <Button onClick={handleOptimize} disabled={isLoading || !selectedCV || !jobDescription} isLoading={isLoading} className="w-full">
-                  <Sparkles className="w-4 h-4" />
-                  Optimizar CV
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-
-          {/* Columna Derecha */}
-          <div className="space-y-4 md:space-y-6">
-            {error && (
-              <Card className="border-error bg-error/5">
-                <CardContent className="py-3 text-error text-sm">{error}</CardContent>
-              </Card>
-            )}
-
-            {optimizedCV ? (
-              <Card id="optimized-cv" className="border-accent/30 shadow-sm" aria-labelledby="optimized-cv-title">
-                <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle id="optimized-cv-title" className="text-sm font-semibold">
-                    CV optimizado
-                  </CardTitle>
-                  <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Acciones del CV optimizado">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={generatePdfPreview}
-                      isLoading={loadingPdf}
-                      className="gap-1.5"
-                      aria-label={loadingPdf ? 'Generando vista previa del PDF' : 'Ver vista previa del PDF'}
-                      disabled={loadingPdf}
-                    >
-                      <Eye className="w-3.5 h-3.5 shrink-0" aria-hidden />
-                      Ver PDF
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyToClipboard}
-                      className="gap-1.5"
-                      aria-label="Copiar todo el texto del CV optimizado"
-                    >
-                      <Copy className="w-3.5 h-3.5 shrink-0" aria-hidden />
-                      Copiar todo
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <OptimizedCVPreview content={optimizedCV} />
-                  {atsAnalysis && <ATSScore analysis={atsAnalysis} />}
-                </CardContent>
-                <CardFooter className="pt-3 flex flex-wrap gap-2">
-                  <Button
-                    variant="default"
-                    onClick={handleSaveCV}
-                    className="gap-2 w-full sm:w-auto"
-                    aria-label="Guardar CV optimizado como nuevo CV en la lista"
+                {/* PDF Buttons ES / EN */}
+                <div className="flex items-center bg-slate-850 p-0.5 rounded-xl border border-slate-700 shadow-sm">
+                  <button
+                    onClick={() => handleDownloadPDF('es')}
+                    disabled={isGeneratingPdf}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/90 hover:bg-blue-600 text-white text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50"
+                    title="Descargar PDF ATS en Español"
                   >
-                    <Save className="w-4 h-4 shrink-0" aria-hidden />
-                    Guardar como nuevo CV
-                  </Button>
-                </CardFooter>
-              </Card>
+                    <Download className="w-3 h-3" />
+                    PDF (ES)
+                  </button>
+                  <button
+                    onClick={() => handleDownloadPDF('en')}
+                    disabled={isGeneratingPdf}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 ml-1"
+                    title="Download ATS PDF in English"
+                  >
+                    <Download className="w-3 h-3" />
+                    PDF (EN)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Content View */}
+            {currentTailoredCv ? (
+              <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed max-h-[600px] overflow-y-auto">
+                {currentTailoredCv.fullMarkdown}
+              </div>
             ) : (
-              <Card className="border-dashed border-2 border-border/50">
-                <CardContent className="py-12 text-center text-text-muted">
-                  <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p className="text-sm">El CV optimizado aparecerá aquí</p>
-                  <p className="text-xs mt-1">Selecciona un CV y pega la descripción del puesto</p>
-                </CardContent>
-              </Card>
+              <div className="text-center py-20 space-y-4">
+                <div className="w-16 h-16 rounded-3xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto">
+                  <Sparkles className="w-8 h-8" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-100">
+                    Aún no has generado el CV adaptado para esta vacante
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    Haz clic en "Generar CV Adaptado" para que el motor de IA extraiga las palabras clave de la oferta y restructure tu experiencia bajo la fórmula STAR/XYZ.
+                  </p>
+                </div>
+                <button
+                  onClick={handleGenerateCV}
+                  disabled={isGenerating}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/20 inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Generar CV Adaptado Ahora
+                </button>
+              </div>
+            )}
+
+            {/* Quick Link to Strategy */}
+            {activeJob && (
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/40 border border-slate-800">
+                <span className="text-xs text-slate-300">
+                  ¿Ya tienes el CV listo? Pasa a la fase de postulación y mensajes.
+                </span>
+                <button
+                  onClick={() => navigate(`/strategy?jobId=${activeJob.id}`)}
+                  className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 font-semibold cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Ver Estrategia de Contacto →
+                </button>
+              </div>
             )}
           </div>
         </div>
-
-        <Dialog.Root open={showPdfPreview} onOpenChange={setShowPdfPreview}>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" aria-hidden />
-            <Dialog.Content
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-full max-w-3xl h-[85vh] z-50 flex flex-col focus:outline-none"
-              aria-describedby="pdf-preview-description"
-            >
-              <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-                <Dialog.Title className="text-lg font-semibold text-primary" id="pdf-dialog-title">
-                  Vista previa del CV optimizado
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <Button variant="ghost" size="icon" aria-label="Cerrar vista previa del PDF" className="rounded-full">
-                    <X className="w-5 h-5" aria-hidden />
-                  </Button>
-                </Dialog.Close>
-              </div>
-              <div
-                id="pdf-preview-description"
-                className="sr-only"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {loadingPdf && 'Generando vista previa del PDF.'}
-                {!loadingPdf && pdfUrl && 'Vista previa del currículum optimizado cargada. Puedes descargar el PDF con el botón inferior.'}
-                {!loadingPdf && !pdfUrl && 'No se pudo generar la vista previa. Intenta de nuevo o descarga el PDF directamente.'}
-              </div>
-              <section
-                className="flex-1 min-h-0 flex flex-col bg-surface rounded-b-xl"
-                aria-label="Contenido del PDF"
-              >
-                {loadingPdf ? (
-                  <div className="flex-1 flex items-center justify-center p-8" aria-busy="true">
-                    <div className="text-center max-w-xs">
-                      <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" aria-hidden />
-                      <p className="text-sm font-medium text-primary">Generando vista previa</p>
-                      <p className="text-xs text-text-muted mt-1">El PDF se abrirá en unos segundos</p>
-                    </div>
-                  </div>
-                ) : pdfUrl ? (
-                  <div className="flex-1 min-h-0 p-3 md:p-4">
-                    <div className="w-full h-full min-h-[320px] rounded-lg border border-border bg-white shadow-sm overflow-hidden">
-                      <iframe
-                        src={pdfUrl}
-                        className="w-full h-full border-0"
-                        title="Currículum vitae optimizado en PDF"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center p-8 text-center">
-                    <div>
-                      <FileText className="w-12 h-12 mx-auto text-text-muted opacity-50 mb-3" aria-hidden />
-                      <p className="text-sm font-medium text-primary">No se pudo generar la vista previa</p>
-                      <p className="text-xs text-text-muted mt-1">Puedes intentar descargar el PDF directamente</p>
-                    </div>
-                  </div>
-                )}
-              </section>
-              <div className="p-4 border-t border-border flex flex-wrap items-center justify-end gap-2 shrink-0">
-                <Button
-                  onClick={downloadPdf}
-                  className="gap-2"
-                  aria-label="Descargar CV optimizado en PDF"
-                >
-                  <Download className="w-4 h-4" aria-hidden />
-                  Descargar PDF
-                </Button>
-                <Dialog.Close asChild>
-                  <Button variant="outline" aria-label="Cerrar y volver al optimizador">
-                    Cerrar
-                  </Button>
-                </Dialog.Close>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
       </div>
     </div>
   );
-}
+};
