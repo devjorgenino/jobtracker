@@ -189,6 +189,10 @@ export class ATSService {
       parts.push(p.name, p.description, (p.technologies || []).join(' '));
     });
 
+    if ((cv as MasterCV).rawText) {
+      parts.push((cv as MasterCV).rawText || '');
+    }
+
     return parts.join(' ');
   }
 

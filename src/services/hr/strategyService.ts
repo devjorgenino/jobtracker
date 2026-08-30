@@ -38,11 +38,19 @@ Salario: ${job.salary || 'No especificado'}
 Descripción del puesto:
 ${job.description || job.requirements || 'No provista'}
 
---- PERFIL CANDIDATO ---
+--- PERFIL REAL DEL CANDIDATO (Basado en su CV Maestro) ---
 Nombre: ${candidateName}
-Rol Actual: ${candidateRole}
-Habilidades Principales: ${cv.skillCategories?.map(c => `${c.categoryName}: ${c.skills.join(', ')}`).join(' | ')}
-Resumen: ${cv.personalInfo?.summary || (cv as any).summary || ''}
+Rol Actual / Título: ${candidateRole}
+Ubicación: ${cv.personalInfo?.location || 'Remoto'}
+Habilidades Principales: ${cv.skillCategories?.map(c => `${c.categoryName}: ${c.skills.join(', ')}`).join(' | ') || 'No categorizadas'}
+Resumen Profesional: ${cv.personalInfo?.summary || (cv as any).summary || ''}
+Experiencia Laboral:
+${JSON.stringify(cv.workExperience || [], null, 2)}
+Educación:
+${JSON.stringify(cv.education || [], null, 2)}
+Proyectos Destacados:
+${JSON.stringify(cv.projects || [], null, 2)}
+${(cv as MasterCV).rawText ? `\nTexto Extraído del CV:\n${(cv as MasterCV).rawText?.slice(0, 5000)}` : ''}
 
 --- REQUERIMIENTOS DE SALIDA ---
 Genera un objeto JSON EXACTO con las siguientes secciones:

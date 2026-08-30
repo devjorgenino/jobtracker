@@ -64,6 +64,7 @@ Certificaciones:
 ${JSON.stringify(masterCv.certifications || [], null, 2)}
 Idiomas:
 ${JSON.stringify(masterCv.languages || [], null, 2)}
+${masterCv.rawText ? `\n--- TEXTO ORIGINAL EXTRAÍDO DEL CV DEL CANDIDATO ---\n${masterCv.rawText.slice(0, 6000)}\n` : ''}
 
 --- INSTRUCCIONES DE RESPUESTA ---
 Debes responder ÚNICAMENTE con un objeto JSON válido (sin texto antes o después) con la siguiente estructura:

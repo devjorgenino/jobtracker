@@ -207,6 +207,35 @@ export const OptimizePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Master CV Reference Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-black text-sm">
+            CV
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-200">
+                Fuente Única de Verdad: <strong className="text-indigo-400">{masterCV.personalInfo?.name || 'CV Maestro'}</strong>
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                {masterCV.personalInfo?.roleTitle || 'Perfil Profesional'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {masterCV.workExperience?.length || 0} Experiencias laborales • {masterCV.skillCategories?.reduce((acc, c) => acc + (c.skills?.length || 0), 0) || 0} Habilidades registradas • {masterCV.education?.length || 0} Títulos
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('/cv')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+        >
+          <FileText className="w-3.5 h-3.5 text-indigo-400" />
+          Subir / Editar CV Maestro
+        </button>
+      </div>
+
       {/* Main Split Screen */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Job Details & Keywords Radar (5 cols) */}

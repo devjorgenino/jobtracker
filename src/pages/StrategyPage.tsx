@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { StrategyService } from '../services/hr/strategyService';
 import { Badge } from '../components/common/Badge';
@@ -16,11 +16,13 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const StrategyPage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const queryJobId = searchParams.get('jobId');
 
   const {
@@ -138,6 +140,35 @@ export const StrategyPage: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Master CV Reference Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-black text-sm">
+            CV
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-200">
+                Estrategia e InMails basados en: <strong className="text-purple-400">{masterCV.personalInfo?.name || 'CV Maestro'}</strong>
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                {masterCV.personalInfo?.roleTitle || 'Perfil Profesional'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Personalizando mensajes con tus {masterCV.workExperience?.length || 0} roles previos y {masterCV.skillCategories?.reduce((acc, c) => acc + (c.skills?.length || 0), 0) || 0} habilidades verificadas.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('/cv')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+        >
+          <FileText className="w-3.5 h-3.5 text-purple-400" />
+          Actualizar CV Maestro
+        </button>
       </div>
 
       {currentStrategy && activeJob ? (
