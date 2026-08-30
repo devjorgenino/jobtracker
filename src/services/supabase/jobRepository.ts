@@ -125,7 +125,7 @@ export class JobRepository {
       throw error;
     }
 
-    return (data || []).map((row) => this.fromDatabaseRow(row as DatabaseJobRow));
+    return (data || []).map((row: any) => this.fromDatabaseRow(row as DatabaseJobRow));
   }
 
   /**
