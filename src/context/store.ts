@@ -445,13 +445,29 @@ export const useStore = create<AppState>()(
       name: 'jobtracker-storage-v2',
       merge: (persistedState: any, currentState: AppState) => {
         const persisted = (persistedState as Partial<AppState>) || {};
+        const persistedAi = persisted.aiConfig || ({} as Partial<AIConfig>);
+
+        // Resolve baseUrl: if persisted is empty or points to legacy unreachable domain, use .env default
+        const omnirouteBaseUrl =
+          !persistedAi.omnirouteBaseUrl || persistedAi.omnirouteBaseUrl.includes('api.omniroute.ai')
+            ? DEFAULT_AI_CONFIG.omnirouteBaseUrl
+            : persistedAi.omnirouteBaseUrl;
+
+        // Resolve model: if persisted is generic/invalid, use .env default
+        const omnirouteModel =
+          !persistedAi.omnirouteModel || persistedAi.omnirouteModel.trim() === 'free-models'
+            ? DEFAULT_AI_CONFIG.omnirouteModel
+            : persistedAi.omnirouteModel.trim();
+
         const mergedAiConfig: AIConfig = {
           ...DEFAULT_AI_CONFIG,
-          ...(persisted.aiConfig || {}),
-          omnirouteApiKey: persisted.aiConfig?.omnirouteApiKey || DEFAULT_AI_CONFIG.omnirouteApiKey,
-          openrouterApiKey: persisted.aiConfig?.openrouterApiKey || DEFAULT_AI_CONFIG.openrouterApiKey,
-          huggingfaceApiKey: persisted.aiConfig?.huggingfaceApiKey || DEFAULT_AI_CONFIG.huggingfaceApiKey,
-          customApiKey: persisted.aiConfig?.customApiKey || DEFAULT_AI_CONFIG.customApiKey,
+          ...persistedAi,
+          omnirouteBaseUrl,
+          omnirouteModel,
+          omnirouteApiKey: persistedAi.omnirouteApiKey || DEFAULT_AI_CONFIG.omnirouteApiKey,
+          openrouterApiKey: persistedAi.openrouterApiKey || DEFAULT_AI_CONFIG.openrouterApiKey,
+          huggingfaceApiKey: persistedAi.huggingfaceApiKey || DEFAULT_AI_CONFIG.huggingfaceApiKey,
+          customApiKey: persistedAi.customApiKey || DEFAULT_AI_CONFIG.customApiKey,
         };
 
         return {
