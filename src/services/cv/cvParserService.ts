@@ -148,6 +148,26 @@ export class CVParserService {
     const education = this.extractEducation(lines);
     const languages = this.extractLanguages(lines);
 
+    // Clean up PDF-introduced spacing artifacts in personal info fields
+    if (personalInfo.name) {
+      personalInfo.name = personalInfo.name.replace(/\s+/g, ' ').trim();
+    }
+    if (personalInfo.roleTitle) {
+      // Fix PDF-inserted spaces around hyphens and pipes: "Full - Stack" → "Full-Stack", "AI - Native" → "AI-Native"
+      personalInfo.roleTitle = personalInfo.roleTitle
+        .replace(/\s*-\s*/g, '-')
+        .replace(/\s*\|\s*/g, ' | ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+    if (personalInfo.phone) {
+      // Normalize phone: "+58 412 - 350 - 6984" → "+58 412-350-6984"
+      personalInfo.phone = personalInfo.phone
+        .replace(/\s*-\s*/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
     return {
       id: `master_cv_${Date.now()}`,
       title: personalInfo.name ? `CV — ${personalInfo.name}` : (fileName || 'CV Maestro'),
@@ -175,10 +195,21 @@ export class CVParserService {
     let linkedin = '';
     let github = '';
     let portfolio = '';
-    let location = 'Remoto — Venezuela (LATAM)';
+    let location = '';
+    let locationFound = false;
 
-    // Search header lines for contact details
-    for (let i = 0; i < Math.min(12, lines.length); i++) {
+    // Determine where the header/contact block ends — stop at first section header
+    const sectionHeaderRegex = /^(?:RESUMEN|PERFIL|HABILIDADES|EXPERIENCIA|EDUCACI[OÓ]N|FORMACI[OÓ]N|PROYECTOS|CERTIFICACIONES|IDIOMAS|SUMMARY|SKILLS|EXPERIENCE|EDUCATION|PROJECTS|LANGUAGES)\b/i;
+    let headerEnd = Math.min(15, lines.length);
+    for (let i = 0; i < headerEnd; i++) {
+      if (sectionHeaderRegex.test(lines[i])) {
+        headerEnd = i;
+        break;
+      }
+    }
+
+    // Search ONLY header lines for contact details (not summary/body text)
+    for (let i = 0; i < headerEnd; i++) {
       const l = lines[i];
 
       const emailMatch = l.match(/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/);
@@ -199,19 +230,54 @@ export class CVParserService {
         if (match) github = 'https://' + match[0];
       }
 
-      if (l.includes('vercel.app') || l.includes('.dev') || l.includes('portfolio') || l.includes('developer.vercel.app')) {
-        const match = l.match(/(?:https?:\/\/)?[\w.-]+\.(?:vercel\.app|dev|io|me)/);
-        if (match && !match[0].includes('linkedin') && !match[0].includes('github')) {
-          portfolio = match[0].startsWith('http') ? match[0] : 'https://' + match[0];
+      // Portfolio: match vercel.app/dev/io/me domains, but EXCLUDE email domains
+      // and ensure we capture the full domain even with PDF-added spaces around hyphens
+      if (l.includes('vercel.app') || l.includes('.dev') || l.includes('portfolio')) {
+        // First try to match vercel.app domain specifically (highest priority)
+        const vercelMatch = l.match(/(?:https?:\/\/)?[\w][\w.\s-]*\.vercel\.app/);
+        if (vercelMatch && !portfolio) {
+          // Clean up PDF-introduced spaces around hyphens in the domain
+          const cleanDomain = vercelMatch[0].replace(/\s*-\s*/g, '-').replace(/\s+/g, '');
+          portfolio = cleanDomain.startsWith('http') ? cleanDomain : 'https://' + cleanDomain;
+        }
+
+        // If no vercel.app match, try other TLDs but exclude email-derived domains
+        if (!portfolio) {
+          const otherMatch = l.match(/(?:https?:\/\/)?[\w.-]+\.(?:dev|io|me)(?:\/[\w-]*)?/);
+          if (otherMatch) {
+            const candidate = otherMatch[0];
+            // Skip if this domain is the local part of an email (e.g. "jorgenino.dev" from "jorgenino.dev@gmail.com")
+            const candidateEnd = (otherMatch.index || 0) + candidate.length;
+            const charAfter = l[candidateEnd];
+            if (charAfter === '@') {
+              // This is part of an email address, skip it
+            } else if (!candidate.includes('linkedin') && !candidate.includes('github')) {
+              portfolio = candidate.startsWith('http') ? candidate : 'https://' + candidate;
+            }
+          }
         }
       }
 
-      if (l.toLowerCase().includes('venezuela') || l.toLowerCase().includes('remoto') || l.toLowerCase().includes('latam')) {
+      // Location: only set from header lines (not body text), and only set once
+      if (!locationFound && (l.toLowerCase().includes('venezuela') || l.toLowerCase().includes('remoto') || l.toLowerCase().includes('latam'))) {
         const parts = l.split('|').map((p) => p.trim());
-        const loc = parts.find((p) => p.toLowerCase().includes('venezuela') || p.toLowerCase().includes('remoto'));
-        if (loc) location = loc;
+        const loc = parts.find((p) => p.toLowerCase().includes('venezuela') || p.toLowerCase().includes('remoto') || p.toLowerCase().includes('latam'));
+        if (loc) {
+          location = loc;
+          locationFound = true;
+          // Check if the next line continues the location (e.g. "(LATAM)" on its own line)
+          if (i + 1 < headerEnd) {
+            const nextLine = lines[i + 1].trim();
+            if (/^\(.*\)$/.test(nextLine) && nextLine.length < 20) {
+              location += ' ' + nextLine;
+            }
+          }
+        }
       }
     }
+
+    // Fallback location
+    if (!location) location = 'Remoto — Venezuela (LATAM)';
 
     // Extract professional summary section
     const summary = this.extractSummary(lines, rawText);

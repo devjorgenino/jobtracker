@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 2.5,
+    marginBottom: 6,
   },
   roleTitle: {
     fontSize: 10.5,
