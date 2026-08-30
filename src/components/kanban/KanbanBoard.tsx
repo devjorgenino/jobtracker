@@ -5,11 +5,14 @@ import type { Job, JobStatus } from '../../types/job';
 import { useStore } from '../../context/store';
 import { KanbanColumn } from './KanbanColumn';
 import { JobDetailModal } from '../job/JobDetailModal';
-import { Filter, X } from 'lucide-react';
+import { ExtensionSyncService } from '../../services/sync/extensionSync';
+import { Filter, X, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const KanbanBoard: React.FC = () => {
   const { jobs, filters, setFilters, transitionJobStatus } = useStore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Filter jobs by search, priority, workMode, portal
   const filteredJobs = jobs.filter((job) => {
@@ -44,6 +47,13 @@ export const KanbanBoard: React.FC = () => {
     transitionJobStatus(draggableId, targetStatus);
   };
 
+  const handleSyncExtension = () => {
+    setIsSyncing(true);
+    ExtensionSyncService.requestExtensionSync();
+    toast.info('Buscando vacantes guardadas en la extensión...', { duration: 2500 });
+    setTimeout(() => setIsSyncing(false), 1500);
+  };
+
   const activeColumns: JobStatus[] = [
     'wishlist',
     'applied',
@@ -56,7 +66,7 @@ export const KanbanBoard: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Filters Bar */}
+      {/* Filters & Actions Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-400 font-medium flex items-center gap-1.5 px-2">
@@ -92,7 +102,7 @@ export const KanbanBoard: React.FC = () => {
           {(filters.search || filters.workMode !== 'all' || filters.priority !== 'all') && (
             <button
               onClick={() => setFilters({ search: '', workMode: 'all', priority: 'all' })}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors cursor-pointer"
             >
               <X className="w-3 h-3" />
               Limpiar
@@ -100,9 +110,21 @@ export const KanbanBoard: React.FC = () => {
           )}
         </div>
 
-        <div className="text-xs text-slate-400 font-medium">
-          Mostrando <span className="text-slate-100 font-bold">{filteredJobs.length}</span> de{' '}
-          <span className="text-slate-100 font-bold">{jobs.length}</span> vacantes
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSyncExtension}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-semibold border border-blue-500/30 transition-all cursor-pointer"
+            title="Sincronizar vacantes guardadas desde la extensión del navegador"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            Sincronizar Extensión
+          </button>
+
+          <div className="text-xs text-slate-400 font-medium">
+            Mostrando <span className="text-slate-100 font-bold">{filteredJobs.length}</span> de{' '}
+            <span className="text-slate-100 font-bold">{jobs.length}</span> vacantes
+          </div>
         </div>
       </div>
 

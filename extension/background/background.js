@@ -1,17 +1,18 @@
 /**
  * JobTracker Background Service Worker (Manifest V3)
+ * Handles storage, context menus, cross-tab synchronization, and web app communication.
  */
 
 const APP_DEFAULT_URL = 'http://localhost:5173';
 
-// Initialize context menu
+// Initialize context menu and storage
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'jobtracker-save-selection',
-    title: 'Guardar selección como vacante en JobTracker',
+    title: 'Guardar selección como vacante en JobTracker AI',
     contexts: ['selection']
   });
-  console.log('[JobTracker Background] Extensión inicializada correctamente.');
+  console.log('✅ [JobTracker Background] Extensión inicializada correctamente.');
 });
 
 // Handle Context Menu clicks
@@ -19,7 +20,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'jobtracker-save-selection') {
     const selectedText = info.selectionText || '';
     const job = {
-      id: 'job_' + Date.now(),
+      id: 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
       position: tab.title || 'Vacante Seleccionada',
       company: 'Empresa',
       description: selectedText,
@@ -28,21 +29,22 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       workMode: 'Remoto',
       status: 'wishlist',
       priority: 'medium',
+      portal: 'Menú Contextual',
       createdAt: new Date().toISOString(),
       lastUpdate: new Date().toISOString(),
-      notes: 'Guardado desde menú contextual'
+      notes: 'Guardado desde menú contextual del navegador.'
     };
     saveAndBroadcastJob(job);
   }
 });
 
-// Handle Messages from Popup or Content Scripts
+// Handle Messages from Popup, Content Scripts, or Web App
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'SAVE_JOB') {
     saveAndBroadcastJob(request.job).then((result) => {
       sendResponse(result);
     });
-    return true; // Keep channel open for async response
+    return true; // Async response
   }
 
   if (request.action === 'SAVE_AND_OPTIMIZE') {
@@ -53,15 +55,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === 'GET_ALL_SAVED_JOBS') {
+    chrome.storage.local.get(['jobs']).then((res) => {
+      sendResponse({ success: true, jobs: res.jobs || [] });
+    }).catch((err) => {
+      sendResponse({ success: false, error: err.message, jobs: [] });
+    });
+    return true;
+  }
+
+  if (request.action === 'CLEAR_SAVED_JOBS') {
+    chrome.storage.local.set({ jobs: [] }).then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
   if (request.action === 'OPEN_APP') {
-    openOrFocusApp();
+    openOrFocusApp(request.path || '');
     sendResponse({ success: true });
     return true;
   }
 });
 
 /**
- * Save job to chrome.storage.local and broadcast to active JobTracker tabs
+ * Save job to chrome.storage.local and broadcast across all channels to active JobTracker tabs
  */
 async function saveAndBroadcastJob(job) {
   try {
@@ -69,8 +87,7 @@ async function saveAndBroadcastJob(job) {
     const storage = await chrome.storage.local.get(['jobs']);
     const existingJobs = storage.jobs || [];
     
-    // Check if already exists (by url or id)
-    const index = existingJobs.findIndex(j => j.id === job.id || (j.url && j.url === job.url));
+    const index = existingJobs.findIndex(j => j.id === job.id || (job.url && j.url === job.url && job.url.length > 5));
     if (index >= 0) {
       existingJobs[index] = { ...existingJobs[index], ...job, lastUpdate: new Date().toISOString() };
     } else {
@@ -79,7 +96,7 @@ async function saveAndBroadcastJob(job) {
 
     await chrome.storage.local.set({ jobs: existingJobs, lastSavedJob: job });
 
-    // 2. Broadcast to any open JobTracker tabs
+    // 2. Broadcast to all matching tabs (localhost, 127.0.0.1, or custom domains)
     const tabs = await chrome.tabs.query({});
     let appFound = false;
 
@@ -89,38 +106,66 @@ async function saveAndBroadcastJob(job) {
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: (jobData) => {
+              // 1. Dispatch window.postMessage with multiple action keys
+              window.postMessage({
+                type: 'JOBTRACKER_EXTENSION_JOB',
+                source: 'jobtracker-extension',
+                payload: jobData
+              }, '*');
+
               window.postMessage({
                 type: 'JOBTRACKER_EXTENSION_SYNC',
                 source: 'jobtracker-extension',
                 payload: jobData
               }, '*');
-              
-              // Also trigger BroadcastChannel
-              if (typeof BroadcastChannel !== 'undefined') {
-                const bc = new BroadcastChannel('jobtracker_channel');
-                bc.postMessage({ type: 'NEW_JOB', job: jobData });
-                bc.close();
+
+              window.postMessage({
+                type: 'JOB_SAVED',
+                source: 'jobtracker-extension',
+                payload: jobData
+              }, '*');
+
+              // 2. Direct Window Helper Call
+              if (typeof window.__JOBTRACKER_RECEIVE_JOB__ === 'function') {
+                window.__JOBTRACKER_RECEIVE_JOB__(jobData);
               }
+
+              // 3. Custom DOM Event
+              window.dispatchEvent(new CustomEvent('jobtracker:job', { detail: jobData }));
+
+              // 4. LocalStorage Sync trigger
+              try {
+                localStorage.setItem('jobtracker_new_job', JSON.stringify(jobData));
+              } catch (e) {}
+
+              // 5. BroadcastChannels
+              ['jobtracker_sync', 'jobtracker_channel', 'jobtracker_extension_channel'].forEach(chName => {
+                try {
+                  const bc = new BroadcastChannel(chName);
+                  bc.postMessage({ type: 'JOB_SAVED', payload: jobData, job: jobData });
+                  bc.close();
+                } catch (e) {}
+              });
             },
             args: [job]
           });
           appFound = true;
         } catch (e) {
-          console.log('[JobTracker] Could not inject into tab', tab.id, e);
+          console.log('[JobTracker Background] Could not inject sync into tab', tab.id, e);
         }
       }
     }
 
-    // Set badge
+    // Set badge indicator
     chrome.action.setBadgeText({ text: '✓' });
     chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
     setTimeout(() => {
       chrome.action.setBadgeText({ text: '' });
     }, 3000);
 
-    return { success: true, appFound: appFound };
+    return { success: true, appFound: appFound, totalSaved: existingJobs.length };
   } catch (err) {
-    console.error('[JobTracker] Error saving job:', err);
+    console.error('[JobTracker Background] Error saving job:', err);
     return { success: false, error: err.message };
   }
 }
@@ -132,7 +177,10 @@ async function openOrFocusApp(path = '') {
   const tabs = await chrome.tabs.query({});
   for (const tab of tabs) {
     if (tab.url && (tab.url.includes('localhost:') || tab.url.includes('127.0.0.1:') || tab.url.includes('jobtracker'))) {
-      const targetUrl = new URL(path, tab.url).href;
+      const baseUrl = tab.url.split('#')[0].split('?')[0].replace(/\/+$/, '');
+      const cleanPath = path.startsWith('/') ? path : `/${path}`;
+      const targetUrl = `${baseUrl}${cleanPath}`;
+      
       await chrome.tabs.update(tab.id, { active: true, url: targetUrl });
       if (tab.windowId) {
         await chrome.windows.update(tab.windowId, { focused: true });

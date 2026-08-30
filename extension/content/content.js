@@ -1,6 +1,7 @@
 /**
  * JobTracker Content Script Coordinator
  * Injects on job pages, provides 1-click floating quick save, and communicates with extension popup/background.
+ * Also provides a bi-directional bridge when loaded on the JobTracker web app.
  */
 
 (function() {
@@ -8,6 +9,58 @@
   if (window.__JOBTRACKER_INJECTED__) return;
   window.__JOBTRACKER_INJECTED__ = true;
 
+  // 1. Detect if we are on the JobTracker Web App page
+  const isJobTrackerApp = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' || 
+                           window.location.port === '5173' ||
+                           document.title.includes('JobTracker') ||
+                           !!document.querySelector('meta[name="jobtracker-app"]');
+
+  if (isJobTrackerApp) {
+    // Flag extension as installed in the page window
+    try {
+      window.__JOBTRACKER_EXTENSION_INSTALLED__ = true;
+      window.dispatchEvent(new CustomEvent('jobtracker:extension-ready', { detail: { version: '1.0.0' } }));
+    } catch (e) {}
+
+    // Auto-sync existing jobs from extension storage on app load
+    setTimeout(() => {
+      chrome.runtime.sendMessage({ action: 'GET_ALL_SAVED_JOBS' }, (response) => {
+        if (response && response.success && Array.isArray(response.jobs) && response.jobs.length > 0) {
+          // Send all jobs to the web app
+          window.postMessage({
+            type: 'JOBTRACKER_EXTENSION_SYNC_ALL',
+            source: 'jobtracker-extension',
+            payload: response.jobs
+          }, '*');
+
+          if (typeof window.__JOBTRACKER_RECEIVE_ALL_JOBS__ === 'function') {
+            window.__JOBTRACKER_RECEIVE_ALL_JOBS__(response.jobs);
+          }
+        }
+      });
+    }, 500);
+
+    // Listen for requests from the web app (e.g. "Sincronizar ahora" button)
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'JOBTRACKER_REQUEST_EXTENSION_SYNC') {
+        chrome.runtime.sendMessage({ action: 'GET_ALL_SAVED_JOBS' }, (response) => {
+          if (response && response.success) {
+            window.postMessage({
+              type: 'JOBTRACKER_EXTENSION_SYNC_ALL',
+              source: 'jobtracker-extension',
+              payload: response.jobs || []
+            }, '*');
+          }
+        });
+      }
+    });
+
+    // We don't need scrapers or floating buttons on the JobTracker app itself
+    return;
+  }
+
+  // 2. Job Portals Scrapers & Floating Button Injection
   const scrapers = [
     window.JobTrackerLinkedInScraper,
     window.JobTrackerIndeedScraper,
@@ -32,8 +85,7 @@
   function extractCurrentJob() {
     const scraper = getActiveScraper();
     try {
-      const data = scraper.scrape();
-      // Ensure all fields are sanitized
+      const data = scraper ? scraper.scrape() : {};
       return {
         id: 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
         company: data.company || 'Empresa',
@@ -44,7 +96,7 @@
         salary: data.salary || '',
         description: data.description || '',
         techStack: Array.isArray(data.techStack) ? data.techStack.join(', ') : (data.techStack || ''),
-        portal: data.portal || scraper.name || 'Web',
+        portal: data.portal || (scraper ? scraper.name : 'Web'),
         contactName: data.recruiterName || '',
         contactEmail: '',
         contactProfile: data.recruiterProfile || '',
@@ -52,7 +104,7 @@
         priority: 'medium',
         createdAt: new Date().toISOString(),
         lastUpdate: new Date().toISOString(),
-        notes: `Extraído automáticamente por la extensión desde ${data.portal || scraper.name}.`
+        notes: `Extraído automáticamente por la extensión desde ${data.portal || (scraper ? scraper.name : 'Web')}.`
       };
     } catch (e) {
       console.error('[JobTracker] Error extracting job:', e);
@@ -133,7 +185,7 @@
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'GET_JOB_DATA') {
       const job = extractCurrentJob();
-      sendResponse({ success: !!job, job: job, scraper: getActiveScraper().name });
+      sendResponse({ success: !!job, job: job, scraper: getActiveScraper() ? getActiveScraper().name : 'Generic' });
     } else if (request.action === 'SHOW_TOAST') {
       showToast(request.message, request.type || 'success');
       sendResponse({ success: true });

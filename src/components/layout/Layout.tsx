@@ -33,14 +33,17 @@ export const Layout: React.FC = () => {
 
   // Initialize Extension Sync Listener
   useEffect(() => {
-    ExtensionSyncService.initialize((incomingJob, autoOptimize) => {
-      addJob(incomingJob);
-      if (autoOptimize) {
-        navigate(`/optimize?jobId=${incomingJob.id}`);
+    ExtensionSyncService.initialize(
+      (incomingJob, autoOptimize) => {
+        addJob(incomingJob);
+        if (autoOptimize) {
+          navigate(`/optimize?jobId=${incomingJob.id}`);
+        }
+      },
+      (batchJobs) => {
+        batchJobs.forEach((j) => addJob(j));
       }
-    });
-
-    ExtensionSyncService.notifyReady();
+    );
   }, [addJob, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
