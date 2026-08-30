@@ -9,6 +9,10 @@ import { ExtensionSyncService } from '../../services/sync/extensionSync';
 import type { Job, JobStatus, JobPriority, WorkMode } from '../../types/job';
 import { Briefcase, Building2, MapPin, DollarSign, Globe, Tag, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { CloudMigrationModal } from '../auth/CloudMigrationModal';
+import { useAuth } from '../../context/AuthContext';
+import { JobRepository } from '../../services/supabase/jobRepository';
+import { useCloudSync } from '../../hooks/useCloudSync';
 
 export const Layout: React.FC = () => {
   const [isAddJobOpen, setIsAddJobOpen] = useState(false);
@@ -16,8 +20,10 @@ export const Layout: React.FC = () => {
   const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
   const theme = useStore((state) => state.theme);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { migrationModalOpen, setMigrationModalOpen, localDataSummary } = useCloudSync();
 
-  // Sync dark class on documentElement for Tailwind & standard CSS
+  // Apply dark mode class to document
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -51,15 +57,28 @@ export const Layout: React.FC = () => {
     ExtensionSyncService.initialize(
       (incomingJob, autoOptimize) => {
         addJob(incomingJob);
+        // If user is authenticated, sync directly to Supabase cloud
+        if (user) {
+          JobRepository.upsert(incomingJob, user.id).catch((err) => {
+            console.error('[CloudSync] Error saving extension job to Supabase:', err);
+          });
+        }
         if (autoOptimize) {
           navigate(`/optimize?jobId=${incomingJob.id}`);
         }
       },
       (batchJobs) => {
-        batchJobs.forEach((j) => addJob(j));
+        batchJobs.forEach((j) => {
+          addJob(j);
+          if (user) {
+            JobRepository.upsert(j, user.id).catch((err) => {
+              console.error('[CloudSync] Error saving batch extension job to Supabase:', err);
+            });
+          }
+        });
       }
     );
-  }, [addJob, navigate]);
+  }, [addJob, navigate, user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,6 +306,13 @@ export const Layout: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Zero-Data-Loss Cloud Migration Modal */}
+      <CloudMigrationModal
+        isOpen={migrationModalOpen}
+        onClose={() => setMigrationModalOpen(false)}
+        summary={localDataSummary}
+      />
     </div>
   );
 };
