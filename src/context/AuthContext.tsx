@@ -38,19 +38,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // 1. Obtener la sesión inicial
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    supabase.auth.getSession().then(({ data, error }: { data: { session: Session | null }; error: any }) => {
       if (error) {
         console.error('[AuthContext] Error getting session:', error);
       }
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession(data?.session ?? null);
+      setUser(data?.session?.user ?? null);
       setLoading(false);
     });
 
     // 2. Escuchar cambios de autenticación
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: any, session: Session | null) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
