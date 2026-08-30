@@ -16,16 +16,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAddJobModal }) => {
   const offerCount = jobs.filter((j) => j.status === 'offer').length;
 
   return (
-    <header className="h-16 bg-white/80 dark:bg-slate-950/70 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800/80 px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 transition-colors duration-200">
+    <header className="h-16 bg-white/80 dark:bg-slate-950/70 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800/80 px-3 sm:px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 transition-colors duration-200" role="region" aria-label="Barra superior">
       {/* Search Input */}
-      <div className="relative w-64 sm:w-80 md:w-96">
-        <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      <div className="relative w-48 sm:w-72 md:w-80 lg:w-96 min-w-0">
+        <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
         <input
           type="text"
-          placeholder="Buscar vacantes, empresas, tecnologías..."
+          placeholder="Buscar vacantes..."
+          aria-label="Buscar vacantes, empresas o tecnologías"
           value={filters.search}
           onChange={(e) => setFilters({ search: e.target.value })}
-          className="w-full pl-9.5 pr-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/90 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+          className="w-full pl-9.5 pr-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/90 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all truncate"
         />
       </div>
 
