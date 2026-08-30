@@ -8,8 +8,8 @@ import {
   Puzzle,
   Settings,
   Briefcase,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useStore } from '../../context/store';
@@ -71,11 +71,26 @@ export const Sidebar: React.FC = () => {
         sidebarCollapsed ? 'w-20' : 'w-64'
       )}
     >
+      {/* Single Floating Toggle Button on Sidebar Border */}
+      <button
+        type="button"
+        onClick={toggleSidebar}
+        aria-label={sidebarCollapsed ? 'Expandir menú lateral' : 'Colapsar menú lateral'}
+        title={sidebarCollapsed ? 'Expandir menú lateral' : 'Colapsar menú lateral'}
+        className="absolute -right-3.5 top-6 z-40 w-7 h-7 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-700/90 shadow-xl shadow-black/60 text-slate-300 hover:text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+      >
+        {sidebarCollapsed ? (
+          <ChevronRight className="w-4 h-4 text-blue-400" />
+        ) : (
+          <ChevronLeft className="w-4 h-4 text-slate-300" />
+        )}
+      </button>
+
       {/* Brand Header */}
       <div
         className={cn(
           'border-b border-slate-800/80 flex items-center transition-all duration-300',
-          sidebarCollapsed ? 'p-4 justify-center flex-col gap-3' : 'p-5 justify-between'
+          sidebarCollapsed ? 'p-4 justify-center' : 'p-5 justify-start'
         )}
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -85,30 +100,15 @@ export const Sidebar: React.FC = () => {
           {!sidebarCollapsed && (
             <div className="min-w-0 overflow-hidden">
               <h1 className="font-bold text-sm text-slate-100 flex items-center gap-1.5 truncate">
-                JobTracker <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">AI</span>
+                JobTracker{' '}
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">
+                  AI
+                </span>
               </h1>
               <p className="text-[11px] text-slate-400 truncate">Career & ATS Suite</p>
             </div>
           )}
         </div>
-
-        {/* Toggle Collapse Button */}
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-label={sidebarCollapsed ? 'Expandir menú lateral' : 'Colapsar menú lateral'}
-          title={sidebarCollapsed ? 'Expandir menú lateral' : 'Colapsar menú lateral'}
-          className={cn(
-            'p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none',
-            sidebarCollapsed ? 'mt-1' : ''
-          )}
-        >
-          {sidebarCollapsed ? (
-            <PanelLeftOpen className="w-4 h-4 text-slate-300" />
-          ) : (
-            <PanelLeftClose className="w-4 h-4 text-slate-400" />
-          )}
-        </button>
       </div>
 
       {/* Navigation Links */}
@@ -140,7 +140,12 @@ export const Sidebar: React.FC = () => {
               {({ isActive }) => (
                 <>
                   <div className={cn('flex items-center', sidebarCollapsed ? 'justify-center' : 'gap-3')}>
-                    <Icon className={cn('w-4 h-4 shrink-0 transition-transform group-hover:scale-110', isActive && 'text-white')} />
+                    <Icon
+                      className={cn(
+                        'w-4 h-4 shrink-0 transition-transform group-hover:scale-110',
+                        isActive && 'text-white'
+                      )}
+                    />
                     {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
                   </div>
 
