@@ -165,12 +165,13 @@ export const CVPage: React.FC = () => {
     toast.success('💾 CV Maestro guardado correctamente en el sistema.');
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (lang: 'es' | 'en' = 'es') => {
     setIsGeneratingPdf(true);
-    toast.info('Generando PDF ATS optimizado...');
+    toast.info(`Generando PDF ATS optimizado (${lang.toUpperCase()})...`);
     try {
-      await ATSPDFService.downloadPDF(cvForm, `${cvForm.personalInfo?.name || 'CV'}_Master.pdf`);
-      toast.success('📥 PDF descargado exitosamente.');
+      const name = (cvForm.personalInfo?.name || 'CV').replace(/\s+/g, '_');
+      await ATSPDFService.downloadPDF(cvForm, lang, `${name}_${lang.toUpperCase()}.pdf`);
+      toast.success(`📥 PDF (${lang.toUpperCase()}) descargado exitosamente.`);
     } catch (e: any) {
       console.error('PDF error:', e);
       toast.error('Error al generar el PDF.');
@@ -308,14 +309,26 @@ export const CVPage: React.FC = () => {
             Guardar Cambios
           </button>
 
-          <button
-            onClick={handleDownloadPDF}
-            disabled={isGeneratingPdf}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-all cursor-pointer"
-          >
-            {isGeneratingPdf ? <RefreshCw className="w-4 h-4 animate-spin text-blue-400" /> : <Download className="w-4 h-4 text-blue-400" />}
-            Descargar PDF ATS
-          </button>
+          <div className="flex items-center bg-slate-850 p-0.5 rounded-xl border border-slate-700/80 shadow-sm">
+            <button
+              onClick={() => handleDownloadPDF('es')}
+              disabled={isGeneratingPdf}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition-all cursor-pointer border-r border-slate-700"
+              title="Descargar PDF ATS en Español"
+            >
+              {isGeneratingPdf ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" /> : <Download className="w-3.5 h-3.5 text-blue-400" />}
+              PDF (ES)
+            </button>
+            <button
+              onClick={() => handleDownloadPDF('en')}
+              disabled={isGeneratingPdf}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition-all cursor-pointer"
+              title="Download ATS PDF in English"
+            >
+              {isGeneratingPdf ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" /> : <Download className="w-3.5 h-3.5 text-emerald-400" />}
+              PDF (EN)
+            </button>
+          </div>
 
           <Link
             to="/optimize"

@@ -85,6 +85,7 @@ export interface TailoredCV {
   masterCvId: string;
   jobTitle: string;
   company: string;
+  lang?: 'es' | 'en';
   personalInfo?: PersonalInfo;
   summary: string;
   workExperience: WorkExperience[];

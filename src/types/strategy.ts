@@ -34,6 +34,7 @@ export interface InterviewPrepQuestion {
 export interface JobStrategy {
   id: string;
   jobId: string;
+  lang?: 'es' | 'en';
   companyOverview: string;
   roleAnalysis: string;
   keySellingPoints: string[];

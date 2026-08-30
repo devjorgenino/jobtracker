@@ -6,6 +6,7 @@ import { ATSService } from '../services/hr/atsService';
 import { ATSPDFService } from '../services/pdf/atsPdfGenerator';
 import { ATSScore } from '../components/common/ATSScore';
 import { Badge } from '../components/common/Badge';
+import type { Lang } from '../i18n';
 import {
   Sparkles,
   Download,
@@ -33,7 +34,9 @@ export const OptimizePage: React.FC = () => {
   } = useStore();
 
   const [selectedJobId, setSelectedJobId] = useState<string>(queryJobId || jobs[0]?.id || '');
+  const [selectedLang, setSelectedLang] = useState<Lang>('es');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [customJobText, setCustomJobText] = useState('');
   const [useCustomJob, setUseCustomJob] = useState(false);
@@ -85,10 +88,10 @@ export const OptimizePage: React.FC = () => {
     }
 
     setIsGenerating(true);
-    toast.info('Analizando vacante e inyectando palabras clave...', { duration: 3000 });
+    toast.info(`Analizando vacante e inyectando palabras clave (${selectedLang.toUpperCase()})...`, { duration: 3000 });
 
     try {
-      const tailored = await CVTailorService.generateTailoredCV(targetJob, masterCV, aiConfig);
+      const tailored = await CVTailorService.generateTailoredCV(targetJob, masterCV, aiConfig, selectedLang);
       
       // Calculate ATS score
       const atsAnalysis = ATSService.analyze(tailored, targetJob);
@@ -106,7 +109,7 @@ export const OptimizePage: React.FC = () => {
         });
       }
 
-      toast.success(`🎉 ¡CV adaptado con éxito! ATS Score: ${atsAnalysis.overallScore}%`);
+      toast.success(`🎉 ¡CV adaptado (${selectedLang.toUpperCase()}) con éxito! ATS Score: ${atsAnalysis.overallScore}%`);
     } catch (e: any) {
       console.error(e);
       toast.error('Ocurrió un error al generar el CV. Revisa tu conexión y configuración de OmniRoute en Ajustes.');
@@ -122,17 +125,22 @@ export const OptimizePage: React.FC = () => {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (lang: 'es' | 'en' = selectedLang) => {
     const cvToDownload = currentTailoredCv || masterCV;
+    setIsGeneratingPdf(true);
+    toast.info(`Generando PDF ATS (${lang.toUpperCase()})...`);
     try {
       const filename = activeJob
-        ? `CV_${activeJob.company.replace(/\s+/g, '_')}_${activeJob.position.replace(/\s+/g, '_')}_ATS.pdf`
-        : `CV_${(masterCV.personalInfo?.name || 'Candidato').replace(/\s+/g, '_')}_ATS.pdf`;
+        ? `CV_${activeJob.company.replace(/\s+/g, '_')}_${activeJob.position.replace(/\s+/g, '_')}_${lang.toUpperCase()}_ATS.pdf`
+        : `CV_${(masterCV.personalInfo?.name || 'Candidato').replace(/\s+/g, '_')}_${lang.toUpperCase()}_ATS.pdf`;
 
-      await ATSPDFService.downloadPDF(cvToDownload, filename);
-      toast.success('Descargando archivo PDF en formato ATS...');
+      await ATSPDFService.downloadPDF(cvToDownload, lang, filename);
+      toast.success(`📥 PDF (${lang.toUpperCase()}) descargado exitosamente.`);
     } catch (e) {
+      console.error(e);
       toast.error('Error al generar PDF');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -158,8 +166,8 @@ export const OptimizePage: React.FC = () => {
           </p>
         </div>
 
-        {/* Job Selector Dropdown */}
-        <div className="flex items-center gap-3">
+        {/* Job Selector Dropdown & Lang Selector */}
+        <div className="flex flex-wrap items-center gap-3">
           <div className="w-64">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
               Vacante a Optimizar
@@ -185,6 +193,36 @@ export const OptimizePage: React.FC = () => {
             </select>
           </div>
 
+          {/* Language Selector */}
+          <div className="pt-4">
+            <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700/80 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSelectedLang('es')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedLang === 'es'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Generar e interpretar en Español"
+              >
+                🇪🇸 ES
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedLang('en')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedLang === 'en'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Generate & parse in English"
+              >
+                🇺🇸 EN
+              </button>
+            </div>
+          </div>
+
           <div className="pt-4">
             <button
               onClick={handleGenerateCV}
@@ -194,12 +232,12 @@ export const OptimizePage: React.FC = () => {
               {isGenerating ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Optimizando...
+                  Optimizando ({selectedLang.toUpperCase()})...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  {currentTailoredCv ? 'Regenerar CV' : 'Generar CV Adaptado'}
+                  {currentTailoredCv ? `Regenerar CV (${selectedLang.toUpperCase()})` : `Generar CV (${selectedLang.toUpperCase()})`}
                 </>
               )}
             </button>
@@ -326,7 +364,7 @@ export const OptimizePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() =>
                     handleCopy(
@@ -344,13 +382,27 @@ export const OptimizePage: React.FC = () => {
                   Copiar Texto
                 </button>
 
-                <button
-                  onClick={handleDownloadPDF}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Descargar PDF ATS
-                </button>
+                {/* PDF Buttons ES / EN */}
+                <div className="flex items-center bg-slate-850 p-0.5 rounded-xl border border-slate-700 shadow-sm">
+                  <button
+                    onClick={() => handleDownloadPDF('es')}
+                    disabled={isGeneratingPdf}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/90 hover:bg-blue-600 text-white text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50"
+                    title="Descargar PDF ATS en Español"
+                  >
+                    <Download className="w-3 h-3" />
+                    PDF (ES)
+                  </button>
+                  <button
+                    onClick={() => handleDownloadPDF('en')}
+                    disabled={isGeneratingPdf}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 ml-1"
+                    title="Download ATS PDF in English"
+                  >
+                    <Download className="w-3 h-3" />
+                    PDF (EN)
+                  </button>
+                </div>
               </div>
             </div>
 

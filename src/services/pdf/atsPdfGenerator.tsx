@@ -1,12 +1,14 @@
 /**
- * ATS-Compliant PDF Document & Generator Engine
+ * ATS-Compliant PDF Document & Generator Engine — BILINGUAL (ES / EN)
  * Replicates the exact linear layout of Jorge Niño's Product Engineer CV.
  * NO tables — pure single-column, section-by-section flow for maximum ATS compatibility.
+ * All section headings, labels and PDF metadata switch automatically based on `lang`.
  */
 
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { TailoredCV, MasterCV } from '../../types/cv';
+import { t, type Lang } from '../../i18n';
 
 /* ─────────────────────────── Styles ─────────────────────────── */
 const styles = StyleSheet.create({
@@ -190,7 +192,7 @@ const styles = StyleSheet.create({
 });
 
 /* ─────────────────────── ATS Resume Document ─────────────────────── */
-export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv }) => {
+export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV; lang?: Lang }> = ({ cv, lang = 'es' }) => {
   const p = cv.personalInfo || {
     name: 'Jorge Niño',
     roleTitle: 'Product Engineer | Full-Stack Developer',
@@ -217,8 +219,16 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
   if (p.github) contactParts.push(p.github.replace(/^https?:\/\/(?:www\.)?/, ''));
   if (p.location) contactParts.push(p.location);
 
+  const presentLabel = t('cv.label.present', lang);
+  const skillsLabel = t('cv.label.skills', lang);
+  const techLabel = t('cv.label.technologies', lang);
+
   return (
-    <Document title={`CV_${(p.name || 'Jorge_Nino').replace(/\s+/g, '_')}`} author={p.name} subject="Product Engineer ATS Resume">
+    <Document
+      title={`CV_${(p.name || 'Jorge_Nino').replace(/\s+/g, '_')}_${lang.toUpperCase()}`}
+      author={p.name}
+      subject={lang === 'en' ? 'ATS Resume' : 'CV ATS'}
+    >
       <Page size="A4" style={styles.page}>
 
         {/* ═══════════ HEADER ═══════════ */}
@@ -231,18 +241,18 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
           <View style={styles.headerDivider} />
         </View>
 
-        {/* ═══════════ RESUMEN PROFESIONAL ═══════════ */}
+        {/* ═══════════ RESUMEN / PROFESSIONAL SUMMARY ═══════════ */}
         {summary ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Resumen Profesional</Text>
+            <Text style={styles.sectionTitle}>{t('cv.section.summary', lang)}</Text>
             <Text style={styles.summaryText}>{summary}</Text>
           </View>
         ) : null}
 
-        {/* ═══════════ HABILIDADES TÉCNICAS (inline paragraph, NO table) ═══════════ */}
+        {/* ═══════════ HABILIDADES / TECHNICAL SKILLS (inline paragraph) ═══════════ */}
         {skillCategories.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Habilidades Técnicas</Text>
+            <Text style={styles.sectionTitle}>{t('cv.section.skills', lang)}</Text>
             <Text style={styles.skillsParagraph}>
               {skillCategories.map((cat, idx) => (
                 <React.Fragment key={idx}>
@@ -255,23 +265,21 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
           </View>
         ) : null}
 
-        {/* ═══════════ EXPERIENCIA PROFESIONAL ═══════════ */}
+        {/* ═══════════ EXPERIENCIA / PROFESSIONAL EXPERIENCE ═══════════ */}
         {workExperience.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Experiencia Profesional</Text>
+            <Text style={styles.sectionTitle}>{t('cv.section.experience', lang)}</Text>
             {workExperience.map((exp, idx) => (
               <View key={exp.id || idx} style={styles.experienceBlock}>
-                {/* Role — Company              Date */}
                 <View style={styles.expHeaderRow}>
                   <Text style={styles.expRoleCompany}>
                     {exp.role} — {exp.company}
                   </Text>
                   <Text style={styles.expDate}>
-                    {exp.startDate} — {exp.current ? 'Presente' : exp.endDate}
+                    {exp.startDate} — {exp.current ? presentLabel : exp.endDate}
                   </Text>
                 </View>
 
-                {/* Achievement bullets */}
                 <View style={styles.bulletList}>
                   {(exp.achievements || exp.description || []).map((bullet, bIdx) => (
                     <View key={bIdx} style={styles.bulletRow}>
@@ -281,10 +289,9 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
                   ))}
                 </View>
 
-                {/* Skills line (italic, at the end of each job) */}
                 {exp.technologies && exp.technologies.length > 0 ? (
                   <Text style={styles.expSkillsLine}>
-                    Habilidades: {exp.technologies.join(' · ')}
+                    {skillsLabel}: {exp.technologies.join(' · ')}
                   </Text>
                 ) : null}
               </View>
@@ -292,10 +299,10 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
           </View>
         ) : null}
 
-        {/* ═══════════ EDUCACIÓN ═══════════ */}
+        {/* ═══════════ EDUCACIÓN / EDUCATION ═══════════ */}
         {education.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Educación</Text>
+            <Text style={styles.sectionTitle}>{t('cv.section.education', lang)}</Text>
             {education.map((edu, idx) => (
               <View key={edu.id || idx} style={styles.eduBlock}>
                 <View style={styles.eduRow}>
@@ -305,7 +312,7 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
                     <Text style={styles.eduDegree}>{edu.degree}</Text>
                   </Text>
                   <Text style={styles.eduDate}>
-                    {edu.startDate}{edu.endDate ? ` – ${edu.endDate}` : ''}{edu.current ? ' – Presente' : ''}
+                    {edu.startDate}{edu.endDate ? ` – ${edu.endDate}` : ''}{edu.current ? ` – ${presentLabel}` : ''}
                   </Text>
                 </View>
                 {edu.fieldOfStudy ? (
@@ -316,10 +323,10 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
           </View>
         ) : null}
 
-        {/* ═══════════ PROYECTOS DESTACADOS ═══════════ */}
+        {/* ═══════════ PROYECTOS / NOTABLE PROJECTS ═══════════ */}
         {projects.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Proyectos Destacados</Text>
+            <Text style={styles.sectionTitle}>{t('cv.section.projects', lang)}</Text>
             {projects.map((proj, idx) => (
               <View key={idx} style={{ marginBottom: 4 }}>
                 <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#111827' }}>
@@ -327,17 +334,17 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
                 </Text>
                 <Text style={{ fontSize: 8.6, color: '#374151', marginTop: 1 }}>{proj.description}</Text>
                 {proj.technologies && proj.technologies.length > 0 ? (
-                  <Text style={styles.expSkillsLine}>Tecnologías: {proj.technologies.join(' · ')}</Text>
+                  <Text style={styles.expSkillsLine}>{techLabel}: {proj.technologies.join(' · ')}</Text>
                 ) : null}
               </View>
             ))}
           </View>
         ) : null}
 
-        {/* ═══════════ CERTIFICACIONES ═══════════ */}
+        {/* ═══════════ CERTIFICACIONES / CERTIFICATIONS ═══════════ */}
         {certifications.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Certificaciones</Text>
+            <Text style={styles.sectionTitle}>{t('cv.section.certifications', lang)}</Text>
             {certifications.map((cert, idx) => (
               <Text key={idx} style={styles.certLine}>
                 • {cert.name} — {cert.issuer}{cert.issueDate ? ` · ${cert.issueDate}` : ''}
@@ -346,10 +353,10 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
           </View>
         ) : null}
 
-        {/* ═══════════ IDIOMAS ═══════════ */}
+        {/* ═══════════ IDIOMAS / LANGUAGES ═══════════ */}
         {languages.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Idiomas</Text>
+            <Text style={styles.sectionTitle}>{t('cv.section.languages', lang)}</Text>
             <Text style={styles.languagesLine}>
               {languages.map(l => `${l.language} (${l.proficiency})`).join('  ·  ')}
             </Text>
@@ -363,19 +370,20 @@ export const ATSResumeDocument: React.FC<{ cv: TailoredCV | MasterCV }> = ({ cv 
 
 /* ─────────────────────── Service Class ─────────────────────── */
 export class ATSPDFService {
-  /** Generates a Blob representing the PDF */
-  static async generatePDFBlob(cv: TailoredCV | MasterCV): Promise<Blob> {
-    const doc = <ATSResumeDocument cv={cv} />;
+  /** Generates a Blob representing the PDF in the specified language */
+  static async generatePDFBlob(cv: TailoredCV | MasterCV, lang: Lang = 'es'): Promise<Blob> {
+    const doc = <ATSResumeDocument cv={cv} lang={lang} />;
     return await pdf(doc).toBlob();
   }
 
   /** Download the PDF directly in the browser */
-  static async downloadPDF(cv: TailoredCV | MasterCV, filename?: string): Promise<void> {
-    const blob = await this.generatePDFBlob(cv);
+  static async downloadPDF(cv: TailoredCV | MasterCV, lang: Lang = 'es', filename?: string): Promise<void> {
+    const blob = await this.generatePDFBlob(cv, lang);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename || `CV_${(cv.personalInfo?.name || 'Jorge_Nino').replace(/\s+/g, '_')}_ATS.pdf`;
+    const safeName = (cv.personalInfo?.name || 'Jorge_Nino').replace(/\s+/g, '_');
+    a.download = filename || `CV_${safeName}_ATS_${lang.toUpperCase()}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

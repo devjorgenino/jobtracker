@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { StrategyService } from '../services/hr/strategyService';
 import { Badge } from '../components/common/Badge';
+import type { Lang } from '../i18n';
 import {
   Send,
   Sparkles,
@@ -36,6 +37,7 @@ export const StrategyPage: React.FC = () => {
   } = useStore();
 
   const [selectedJobId, setSelectedJobId] = useState<string>(queryJobId || jobs[0]?.id || '');
+  const [selectedLang, setSelectedLang] = useState<Lang>('es');
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>('q_1');
@@ -59,13 +61,13 @@ export const StrategyPage: React.FC = () => {
     }
 
     setIsGenerating(true);
-    toast.info('Diseñando estrategia de captación y redactando mensajes...', { duration: 3000 });
+    toast.info(`Diseñando estrategia de captación y redactando mensajes (${selectedLang.toUpperCase()})...`, { duration: 3000 });
 
     try {
       const cvToUse = currentTailoredCv || masterCV;
-      const strategy = await StrategyService.generateStrategy(activeJob, cvToUse, aiConfig);
+      const strategy = await StrategyService.generateStrategy(activeJob, cvToUse, aiConfig, selectedLang);
       setStrategy(activeJob.id, strategy);
-      toast.success('🎯 ¡Estrategia y mensajes generados con éxito!');
+      toast.success(`🎯 ¡Estrategia y mensajes (${selectedLang.toUpperCase()}) generados con éxito!`);
     } catch (e: any) {
       console.error(e);
       toast.error('Error al generar la estrategia con IA.');
@@ -102,7 +104,7 @@ export const StrategyPage: React.FC = () => {
         </div>
 
         {/* Job Selector & Trigger */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="w-64">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
               Vacante
@@ -120,6 +122,36 @@ export const StrategyPage: React.FC = () => {
             </select>
           </div>
 
+          {/* Language Selector */}
+          <div className="pt-4">
+            <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-700/80 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSelectedLang('es')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedLang === 'es'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Generar estrategia y mensajes en Español"
+              >
+                🇪🇸 ES
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedLang('en')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  selectedLang === 'en'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Generate strategy & outreach messages in English"
+              >
+                🇺🇸 EN
+              </button>
+            </div>
+          </div>
+
           <div className="pt-4">
             <button
               onClick={handleGenerateStrategy}
@@ -129,12 +161,12 @@ export const StrategyPage: React.FC = () => {
               {isGenerating ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Diseñando...
+                  Diseñando ({selectedLang.toUpperCase()})...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  {currentStrategy ? 'Regenerar Estrategia' : 'Generar Estrategia'}
+                  {currentStrategy ? `Regenerar Estrategia (${selectedLang.toUpperCase()})` : `Generar Estrategia (${selectedLang.toUpperCase()})`}
                 </>
               )}
             </button>

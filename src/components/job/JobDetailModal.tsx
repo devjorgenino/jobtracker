@@ -75,14 +75,20 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, isOpen, onC
     toast.success('Nota registrada en el historial');
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (lang: 'es' | 'en' = 'es') => {
     if (!tailoredCv) {
       toast.error('Primero debes generar el CV adaptado para esta vacante.');
       return;
     }
     try {
-      await ATSPDFService.downloadPDF(tailoredCv, `CV_${job.company}_${job.position}_ATS.pdf`);
-      toast.success('Descargando CV en formato ATS...');
+      const sanitizedCompany = job.company.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const sanitizedPos = job.position.replace(/[^a-zA-Z0-9_-]/g, '_');
+      await ATSPDFService.downloadPDF(
+        tailoredCv,
+        lang,
+        `CV_${sanitizedCompany}_${sanitizedPos}_ATS_${lang.toUpperCase()}.pdf`
+      );
+      toast.success(`Descargando CV ATS en ${lang === 'es' ? 'Español' : 'Inglés'}...`);
     } catch (e) {
       toast.error('Error al generar PDF');
     }
@@ -325,7 +331,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, isOpen, onC
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleCopy(tailoredCv.fullMarkdown || '', 'cv_md')}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 cursor-pointer"
@@ -334,13 +340,24 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, isOpen, onC
                     Copiar Texto
                   </button>
 
-                  <button
-                    onClick={handleDownloadPDF}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Descargar PDF ATS
-                  </button>
+                  <div className="flex items-center bg-slate-800 p-0.5 rounded-xl border border-slate-700 shadow-sm">
+                    <button
+                      onClick={() => handleDownloadPDF('es')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold shadow-sm transition-all"
+                      title="Descargar PDF en Español"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      PDF (ES)
+                    </button>
+                    <button
+                      onClick={() => handleDownloadPDF('en')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-sm transition-all ml-1"
+                      title="Download PDF in English"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      PDF (EN)
+                    </button>
+                  </div>
                 </div>
               </div>
 
