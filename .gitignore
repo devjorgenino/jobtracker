@@ -25,7 +25,10 @@ dist-ssr
 *.sw?
 
 # Agents
-.agents/
+.agents/*
 
 # Claude
-.claude/
+.claude/*
+
+# Hermes
+.hermes/*
